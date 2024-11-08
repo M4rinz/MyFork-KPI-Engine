@@ -22,4 +22,4 @@ RUN poetry install
 
 # Run your app
 COPY . /app
-CMD [ "poetry", "run", "python", "-c", "print('Hello, World!')" ]
+CMD [ "poetry", "run", "python", "app.py" ]
