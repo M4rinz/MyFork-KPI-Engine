@@ -3,10 +3,10 @@ name = "kpi-engine"
 version = "0.1.0"
 description = "KPI Calculation Engine. All the core logic of KPI calculations is responsibility of this project."
 authors = [
-    {name="Fabrizio De Castelli", email="decastellifabrizio@gmail.com"},
-    {name="Marco Minnniti", email=""},
-    {name="Filippo Alessandro Sandoval Villareal", email=""},
-    {name="Maria Immacolata Colella", email=""},
+    "Fabrizio De Castelli <decastellifabrizio@gmail.com>",
+    "Marco Minnniti <m.minniti2001@gmail.com>",
+    "Filippo Alessandro Sandoval Villareal",
+    "Maria Immacolata Colella <mariacole0202@gmail.com>"
 ]
 license = "MIT"
 readme = "README.md"
