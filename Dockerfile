@@ -14,12 +14,12 @@ RUN python3 -m venv $POETRY_VENV \
 # Add `poetry` to PATH
 ENV PATH="${PATH}:${POETRY_VENV}/bin"
 
-WORKDIR /app
+WORKDIR /kpi-engine
 
 # Install dependencies
 COPY poetry.lock pyproject.toml ./
 RUN poetry install
 
 # Run your app
-COPY . /app
+COPY . /kpi-engine
 CMD [ "poetry", "run", "python", "app.py" ]
