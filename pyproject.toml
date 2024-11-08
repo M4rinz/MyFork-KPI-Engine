@@ -1,0 +1,27 @@
+[tool.poetry]
+name = "kpi-engine"
+version = "0.1.0"
+description = "KPI Calculation Engine. All the core logic of KPI calculations is responsibility of this project."
+authors = [
+    {name="Fabrizio De Castelli", email="decastellifabrizio@gmail.com"},
+    {name="Marco Minnniti", email=""},
+    {name="Filippo Alessandro Sandoval Villareal", email=""},
+    {name="Maria Immacolata Colella", email=""},
+]
+license = "MIT"
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "^3.11"
+
+[tool.poetry.dev-dependencies]
+pytest = "^7.1"          # Testing framework
+coverage = "^6.5"       # Coverage measurement
+black = "^22.3"         # Code formatter
+ruff = "^0.0.263"       # Linter
+mypy = "^0.971"         # Static type checker
+flake8 = "^4.0"         # PEP8 compliance checker
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
