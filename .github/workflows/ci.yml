@@ -37,10 +37,10 @@ jobs:
         run: pip install ruff
 
       - name: Run Ruff
-        run: ruff check --output-format=github
+        run: ruff check .
 
-  # Type Checking
-  type-check:
+    # Unit Test
+  test:
     runs-on: ubuntu-latest
     steps:
       - name: Check out code
@@ -49,28 +49,10 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v2
         with:
-          python-version: '3.x'
+            python-version: '3.x'
 
-      - name: Install MyPy
-        run: pip install mypy
+      - name: Install Pytest
+        run: pip install pytest
 
-      - name: Run MyPy for type checking
-        run: mypy .
-
-  # Code Style (PEP8) Check
-  style-check:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Check out code
-        uses: actions/checkout@v3
-
-      - name: Set up Python
-        uses: actions/setup-python@v2
-        with:
-          python-version: '3.x'
-
-      - name: Install Flake8
-        run: pip install flake8
-
-      - name: Run Flake8 for PEP8 compliance
-        run: flake8 .
+      - name: Run Pytest
+        run: pytest
