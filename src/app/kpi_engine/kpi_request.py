@@ -1,7 +1,7 @@
 """ KPI Request interface for incoming requests. """
 
 from datetime import datetime
-import src.main.app.services.grammar as grammar
+import src.app.kpi_engine.grammar as grammar
 
 
 class KPIRequest:

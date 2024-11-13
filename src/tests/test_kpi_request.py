@@ -1,6 +1,6 @@
 import unittest
 from datetime import datetime
-from src.main.app.services.kpi_request import KPIRequest
+from src.app.kpi_engine.kpi_request import KPIRequest
 
 
 class TestKPIRequest(unittest.TestCase):

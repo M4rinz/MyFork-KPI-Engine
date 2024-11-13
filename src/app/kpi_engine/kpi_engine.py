@@ -2,13 +2,15 @@
 
 from .kpi_request import KPIRequest
 from .kpi_response import KPIResponse
-from ..models import BaseKPI
 
+from sqlalchemy.orm import Session
 import requests
 import re
 import pandas as pd
 import numpy as np
 import numexpr
+
+from ..models import RealTimeData
 
 
 class KPIEngine:
@@ -16,10 +18,15 @@ class KPIEngine:
         pass
 
     @staticmethod
-    def compute(details: KPIRequest) -> KPIResponse:
+    def compute(
+            historical_data: Session,
+            real_time_data: Session,
+            details: KPIRequest
+    ) -> KPIResponse:
 
         name = details.name
         machine = details.machine
+
         # Get the formula from the KB
         formula = get_kpi_formula(name, machine)
 
@@ -32,17 +39,27 @@ class KPIEngine:
 
         involved_kpis = set(re.findall(r"\b[A-Za-z][A-Za-z0-9]*\b", formula))
 
-        records = BaseKPI.objects.filter(
-            name__in=involved_kpis,
-            machine=machine,
-            timestamp__range=(start_date, end_date),
-        ).values("name", "value", "timestamp")
+        # SELECT kpi, time, value FROM RealTimeData
+        # WHERE kpi IN (involved_kpis)
+        # AND machine = machine
+        # AND time between start_date, end_date
 
-        dataframe = pd.DataFrame.from_records(records)
+        raw_query_statement = real_time_data.query(RealTimeData).filter(
+            RealTimeData.kpi.in_(involved_kpis),
+            RealTimeData.name == machine,
+            RealTimeData.time.between(start_date, end_date)
+        ).with_entities(
+            RealTimeData.kpi,
+            RealTimeData.time,
+            RealTimeData.value
+        ).statement
+
+
+        dataframe = pd.read_sql(raw_query_statement, real_time_data.bind)
 
         # Here we assume KPIs calculation is bound to a single machine
         pivot_table = dataframe.pivot(
-            index="timestamp", columns="name", values="value"
+            index="time", columns="kpi", values="value"
         ).reset_index()
 
         for base_kpi in involved_kpis:
