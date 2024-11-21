@@ -3,20 +3,26 @@
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy import Column, Integer, String, Float, DateTime
 
-Base_db1 = declarative_base()
-Base_db2 = declarative_base()
+KPI_DB = declarative_base()
 
-# Define tables for Database 1
-class RealTimeData(Base_db1):
-    __tablename__ = "RealTimeData"
-    id = Column(Integer, primary_key=True, index=True)
-    kpi = Column(String, index=True)
+
+class RealTimeData(KPI_DB):
+    __tablename__ = "real_time_data"
+    time = Column(DateTime, primary_key=True, index=True)
+    asset_id = Column(String, primary_key=True, index=True)
     name = Column(String, index=True)
-    time = Column(DateTime, index=True)
-    value = Column(Float)
+    kpi = Column(String, primary_key=True, index=True)
+    sum = Column(Float)
+    avg = Column(Float)
+    max = Column(Float)
+    min = Column(Float)
 
-# Define tables for Database 2
-class HistoricalData(Base_db2):
-    __tablename__ = "HistoricalData"
+
+class AggregatedKPI(KPI_DB):
+    __tablename__ = "aggregated_kpi"
     id = Column(Integer, primary_key=True, index=True)
-    # TODO: define columns for HistoricalData
+    aggregated_kpi_name = Column(String, index=True)
+    value = Column(Float)
+    begin = Column(DateTime, index=True)
+    end = Column(DateTime, index=True)
+    asset_id = Column(String, index=True)

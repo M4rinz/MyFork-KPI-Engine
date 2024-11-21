@@ -1,23 +1,18 @@
-""" KPI Result for responses. """
+from pydantic import BaseModel, validator
 
 
-class KPIResponse:
-    def __init__(self, message, value):
-        self.message = message
-        self.value = value
+class KPIResponse(BaseModel):
+    message: str
+    value: float
 
-    @property
-    def message(self):
-        return self._message
+    @validator("message")
+    def validate_message(cls, value):
+        if not isinstance(value, str):
+            raise ValueError("Message must be a string.")
+        return value
 
-    @property
-    def value(self):
-        return self._value
-
-    @value.setter
-    def value(self, value):
-        self._value = value
-
-    @message.setter
-    def message(self, value):
-        self._message = value
+    @validator("value")
+    def validate_value(cls, value):
+        if not isinstance(value, (int, float)):
+            raise ValueError("Value must be a float or int.")
+        return value
