@@ -1,5 +1,9 @@
 # KPI-Engine
 
+[![CI](https://img.shields.io/github/actions/workflow/status/Kreative-Performative-Individuals/KPI-Engine/ci.yml)](https://github.com/Kreative-Performative-Individuals/KPI-Engine/actions)
+[![License](https://img.shields.io/github/license/Kreative-Performative-Individuals/KPI-Engine)](https://github.com/Kreative-Performative-Individuals/KPI-Engine/blob/dev/LICENSE)
+
+
 The KPI Calculation Engine is a Python library that provides the core logic when it comes to compute requested KPIs from a given storage system.
 
 --- 
