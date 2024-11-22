@@ -3,23 +3,34 @@ FROM python:3.10
 # Configure Poetry
 ENV POETRY_VERSION=1.8.4
 ENV POETRY_HOME=/opt/poetry
-ENV POETRY_VENV=/opt/poetry-venv
-ENV POETRY_CACHE_DIR=/opt/.cache
+ENV POETRY_CACHE_DIR="/root/.cache/pypoetry"
+ENV POETRY_VIRTUALENVS_CREATE=false
+# For having consistent imports
+ENV PYTHONPATH=/kpi_engine/src
 
-# Install poetry separated from system interpreter
-RUN python3 -m venv $POETRY_VENV \
-	&& $POETRY_VENV/bin/pip install -U pip setuptools \
-	&& $POETRY_VENV/bin/pip install poetry==${POETRY_VERSION}
+# Upgrade pip
+RUN pip install --upgrade pip
 
-# Add `poetry` to PATH
-ENV PATH="${PATH}:${POETRY_VENV}/bin"
+# Install Poetry
+RUN pip install poetry==${POETRY_VERSION}
 
-WORKDIR /kpi-engine
+# Set the working directory
+WORKDIR /kpi_engine
+
+# Copy dependency files and installclear dependencies
+COPY poetry.lock pyproject.toml /kpi_engine/
 
 # Install dependencies
-COPY poetry.lock pyproject.toml ./
-RUN poetry install
+RUN poetry install --no-dev --no-root
 
-# Run your app
-COPY . /kpi-engine
-CMD [ "poetry", "run", "python", "app.py" ]
+# Copy the rest of the application code
+COPY ./src/ /kpi_engine/src
+
+# Copy local .env file for DB connection
+COPY .env /kpi_engine/
+
+# Expose port 8000
+EXPOSE 8000
+
+# Run the application
+CMD ["poetry", "run", "start"]
