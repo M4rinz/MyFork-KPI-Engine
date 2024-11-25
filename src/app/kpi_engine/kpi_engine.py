@@ -3,7 +3,7 @@
 from src.app.kpi_engine.kpi_request import KPIRequest
 from src.app.kpi_engine.kpi_response import KPIResponse
 from src.app.models import RealTimeData, AggregatedKPI
-
+import src.app.test_rec as din
 from sqlalchemy.orm import Session
 import requests
 import re
@@ -19,7 +19,8 @@ class KPIEngine:
         machine = details.machine
 
         # Get the formula from the KB
-        formula = get_kpi_formula(name, machine)
+        # va levata machine dalla richiesta alla knowledge base
+        formula = get_kpi_formula(name)
 
         if formula is None:
             return KPIResponse(message="Invalid KPI name or machine", value=-1)
@@ -27,6 +28,9 @@ class KPIEngine:
         aggregation = details.aggregation
         start_date = details.start_date
         end_date = details.end_date
+        operations= details.operation
+        step= details.step
+
 
         involved_kpis = set(re.findall(r"\b[A-Za-z][A-Za-z0-9]*\b", formula))
 
@@ -48,7 +52,7 @@ class KPIEngine:
 
         dataframe = pd.read_sql(raw_query_statement, db.bind)
 
-        # Here we assume KPIs calculation is bound to a single machine
+        # Here we assume KPIs calculation is bound to a single machine (non vale più questa assunzione)
         pivot_table = dataframe.pivot(
             index="time", columns="kpi", values="value"
         ).reset_index()

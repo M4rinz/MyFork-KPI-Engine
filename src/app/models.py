@@ -16,6 +16,7 @@ class RealTimeData(KPI_DB):
     avg = Column(Float)
     max = Column(Float)
     min = Column(Float)
+    operations=Column(String)
 
 
 class AggregatedKPI(KPI_DB):

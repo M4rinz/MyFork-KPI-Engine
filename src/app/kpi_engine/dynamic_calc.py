@@ -177,3 +177,176 @@ def query_DB(db:Session,start_date,end_date,machine,operation,stringa,step):
             .with_entities(RealTimeData.name ,RealTimeData.operations,RealTimeData.time,getattr(RealTimeData,after_last_underscore))
             .statement
         )
+
+        dataframe = pd.read_sql(raw_query_statement, db.bind)
+        
+        pivot_table = dataframe.pivot(
+            index="Date", columns=['C'], values="max"
+        ).reset_index().select_dtypes('number')
+
+
+        resto=pivot_table.shape[0]%step
+        nc=[]
+        if resto==0:
+            nc = pivot_table.reshape(pivot_table.shape[0] // step, step, pivot_table.shape[1])
+        else:
+            resto=pivot_table.shape[0]% step
+            fondo=pivot_table[-resto:]
+            pivot_table = pivot_table[:-resto]
+            nc = pivot_table.reshape(pivot_table.shape[0] // step, step, pivot_table.shape[1])
+            
+        
+        return nc
+
+
+#gestione delle aggregazioni
+
+def A_aggregation(kpi,partial):
+    
+    # check for the key involved in the aggregation
+    keys_inv = keys_involved(kpi)
+    print(keys_inv)
+
+
+    var=kpi.split('°')[2]
+    #selezionniamo la direzione in cui si opera
+    asse=1
+    if var=='mo':
+        asse=0
+   
+    
+    if var==partial['var']:
+        result=f"°{keys_inv[0]}"
+    
+
+    elif 'mean' in kpi:
+
+        #considering the mean operation
+        result=getattr(np,'nanmean')(partial[keys_inv[0]],axis=asse)
+
+        #i cut one dimension so i save again in the same partial result
+        partial[keys_inv[0]]=result
+        print(partial)
+        result=f"°{keys_inv[0]}"
+        
+
+    elif 'max' in kpi:
+
+        #considering the max operation
+        getattr(np,'nanmax')(partial[keys_inv[0]],axis=asse)
+        #i cut one dimension so i save again in the same partial result
+        partial[keys_inv[0]]=result
+        print(partial)
+        result=f"°{keys_inv[0]}"
+              
+    elif 'min' in kpi:
+
+        #considering the min operation
+        getattr(np,'nanmin')(partial[keys_inv[0]],axis=asse)
+        partial[keys_inv[0]]=result
+        print(partial)
+        result=f"°{keys_inv[0]}"
+    
+    elif 'std' in kpi:
+
+        #considering the std operation
+        getattr(np,'nanstd')(partial[keys_inv[0]],axis=asse)
+        partial[keys_inv[0]]=result
+        print(partial)
+        result=f"°{keys_inv[0]}"
+    
+    elif 'sum' in kpi:
+
+        #considering the sum operation
+        result=getattr(np,'nansum')(partial[keys_inv[0]],axis=asse)
+        partial[keys_inv[0]]=result
+        print(partial)
+        result=f"°{keys_inv[0]}"
+              
+    elif 'var' in kpi:
+
+        #considering the var operation
+        getattr(np,'nanvar')(partial[keys_inv[0]],axis=asse)
+        partial[keys_inv[0]]=result
+        print(partial)
+        result=f"°{keys_inv[0]}"
+
+    
+    return result
+
+
+# pairwise operation involving two elements
+def S_operation(kpi,partial):
+
+    # we find the key that are involved
+    keys_inv = keys_involved(kpi)
+
+    print(keys_inv)
+
+    #we check for every possible element according to the grammar that we define
+
+    if '+' in kpi:
+        # we consider the operation +
+        result= partial[keys_inv[0]]+partial[keys_inv[1]]
+        partial[keys_inv[0]]=result
+        print(partial)
+        result=f"°{keys_inv[0]}"
+
+    elif '-' in kpi:
+        # we consider the operation -
+        result= partial[keys_inv[0]]-partial[keys_inv[1]]
+        partial[keys_inv[0]]=result
+        print(partial)
+        result=f"°{keys_inv[0]}"
+              
+    elif '*' in kpi:
+        # we consider the operation *
+        result= partial[keys_inv[0]]*partial[keys_inv[1]]
+        partial[keys_inv[0]]=result
+        print(partial)
+        result=f"°{keys_inv[0]}"
+    
+    elif '/' in kpi:
+        # we consider the operation /
+        result= partial[keys_inv[0]]/partial[keys_inv[1]]
+        partial[keys_inv[0]]=result
+        print(partial)
+        result=f"°{keys_inv[0]}"
+    
+    elif '**' in kpi:
+        # we consider the operation **
+        result= partial[keys_inv[0]]**partial[keys_inv[1]]
+        partial[keys_inv[0]]=result
+        print(partial)
+        result=f"°{keys_inv[0]}"
+              
+    return result
+
+
+# si va a trovare le chiavi che sono coinvolte
+def keys_involved(stringa):
+
+    sep=stringa.split('°')
+    chiavi=[]
+
+    if sep[0]=='S':
+        sep[2]=sep[2].replace(',','')
+
+    for i in sep:
+        if i in partial:
+            chiavi.append(i)
+
+    return chiavi
+
+
+
+# it used to compute the last things
+def risultato(result,partial):
+
+    chiave=result.replace('°','')
+    result=getattr(np,partial['agg'])(partial[chiave],axis=1)
+    return result
+                
+
+
+print("Done with result:")
