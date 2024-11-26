@@ -43,6 +43,8 @@ class KPIRequest(BaseModel):
     def validate_step(cls, value):
         if not isinstance(value, int):
             raise ValueError("The step must be a integer.")
+        if value < 0:
+            raise ValueError("The step must be a positive integer.")
         return value
 
     @validator("time_aggregation")

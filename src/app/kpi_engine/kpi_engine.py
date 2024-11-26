@@ -54,8 +54,6 @@ class KPIEngine:
             f"from {start_date} to {end_date} is {result}"
         )
 
-        print(message)
-
         insert_aggregated_kpi(
             connection=connection,
             request=request,
@@ -83,14 +81,14 @@ def preprocessing(kpi_name, formulas_dict):
 def insert_aggregated_kpi(connection, request: KPIRequest, kpi_list: list, value):
     cursor = connection.cursor()
 
-    
-   
+
+
     insert_query = """
         INSERT INTO aggregated_kpi (name, aggregated_value, begin_datetime, end_datetime, kpi_list, operations, machines, step)
         VALUES (%s, %s, %s, %s, %s, %s, %s, %s);
     """
 
-    
+
     data = (
         request.name,
         value.item(),
@@ -104,13 +102,13 @@ def insert_aggregated_kpi(connection, request: KPIRequest, kpi_list: list, value
 
     print(data)
 
-    
+
     cursor.execute(insert_query, data)
 
-    
+
     connection.commit()
 
-    
+
     cursor.close()
     connection.close()
 

@@ -71,8 +71,6 @@ def dynamic_kpi(
     # get the first letter which is always the operation
     operation = kpi[0]
 
-    print("Now calling", operation, " with kpi ", kpi)
-
     # access the function by the operation
     function = globals()[operation]
 
@@ -112,8 +110,6 @@ def query_DB(kpi, connection, request: KPIRequest, **kwargs):
     )
     AND time BETWEEN '{request.start_date}' AND '{request.end_date}'
     """
-
-    print(raw_query_statement)
 
     cursor = connection.cursor()
     cursor.execute(raw_query_statement)
@@ -162,8 +158,6 @@ def query_DB(kpi, connection, request: KPIRequest, **kwargs):
 
 def A(kpi, partial_result, **kwargs):
 
-    print("A° KPI", kpi)
-
     # keys_inv is the key of the dictionary with the partial result associated with the kpi
     keys_inv = keys_involved(kpi, partial_result)[0]
 
@@ -172,7 +166,6 @@ def A(kpi, partial_result, **kwargs):
 
     # if they match the outermost aggregation, we return the key
     if var == partial_result["var"]:
-        # print("Found outer aggregation, partial result keys are", partial_result.keys())
         return f"°{keys_inv}"
 
     # time aggregation on the split of step
@@ -184,8 +177,6 @@ def A(kpi, partial_result, **kwargs):
             if np_bottom is None:
                 result = getattr(np, "nan" + aggregation)(np_split, axis=1)
                 partial_result[keys_inv] = result
-                # print(partial_result)
-                # print('aggregated only split: shape is', result.shape)
                 return f"°{keys_inv}"
 
             # handle the case in which the dataframe is split in two parts: aggregate and merge them
@@ -194,7 +185,6 @@ def A(kpi, partial_result, **kwargs):
             partial_result[keys_inv] = np.concatenate(
                 (result_split, result_bottom), axis=0
             )
-            # print(partial_result)
             return f"°{keys_inv}"
 
     raise ValueError(
@@ -218,7 +208,6 @@ def S(kpi, partial_result, **kwargs):
         if op in kpi:
             result = func(partial_result[left], partial_result[right])
             partial_result[left] = result
-            # print(partial_result)
             return f"°{left}"
 
     raise exceptions.InvalidBinaryOperatorException(
