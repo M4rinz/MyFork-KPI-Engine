@@ -115,6 +115,7 @@ def insert_aggregated_kpi(connection, request: KPIRequest, kpi_list: list, value
     connection.close()
 
 
+
 def get_kpi_formula(name: str):
     formulas = kbi.get_formulas(name)
     if formulas is None:
