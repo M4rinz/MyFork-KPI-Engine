@@ -43,8 +43,8 @@ class KPIEngine:
             result = dyn.dynamic_kpi(
                 formulas[name], formulas, partial_result, connection, request
             )
-        except dyn.EmptyQueryException as e:
-            return KPIResponse(message=e, value=-1)
+        except Exception as e:
+            return KPIResponse(message=repr(e), value=-1)
 
         # aggregated on time
         result = dyn.finalize_mo(result, partial_result, request.time_aggregation)
@@ -53,6 +53,8 @@ class KPIEngine:
             f"The {aggregation} of KPI {name} for machines {machines} with operations {operations} "
             f"from {start_date} to {end_date} is {result}"
         )
+
+        print(message)
 
         insert_aggregated_kpi(
             connection=connection,
@@ -78,9 +80,7 @@ def preprocessing(kpi_name, formulas_dict):
     return partial_result
 
 
-def insert_aggregated_kpi(
-    connection, request: KPIRequest, kpi_list: list, value: float
-):
+def insert_aggregated_kpi(connection, request: KPIRequest, kpi_list: list, value):
     cursor = connection.cursor()
 
     # Step 3: Define your SQL insert query
@@ -94,14 +94,16 @@ def insert_aggregated_kpi(
     # Example data to insert
     data = (
         request.name,
-        value,
-        request.start_date,
-        request.end_date,
-        kpi_list,
+        value.item(),
+        str(request.start_date),
+        str(request.end_date),
+        list(kpi_list),
         request.operations,
         request.machines,
         request.step,
     )
+
+    print(data)
 
     # Step 5: Execute the insert query with the data
     cursor.execute(insert_query, data)

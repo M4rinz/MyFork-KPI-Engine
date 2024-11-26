@@ -113,6 +113,8 @@ def query_DB(kpi, connection, request: KPIRequest, **kwargs):
     AND time BETWEEN '{request.start_date}' AND '{request.end_date}'
     """
 
+    print(raw_query_statement)
+
     cursor = connection.cursor()
     cursor.execute(raw_query_statement)
 
