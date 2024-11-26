@@ -12,10 +12,11 @@ DB_URL = (
     f"@{os.getenv('DB_HOST')}/{os.getenv('DB_NAME')}"
 )
 
+
 def get_connection():
     return psycopg2.connect(
-        database=os.getenv('DB_NAME'),
-        user=os.getenv('DB_USER'),
-        password=os.getenv('DB_PASSWORD'),
-        host=os.getenv('DB_HOST')
+        database=os.getenv("DB_NAME"),
+        user=os.getenv("DB_USER"),
+        password=os.getenv("DB_PASSWORD"),
+        host=os.getenv("DB_HOST"),
     )

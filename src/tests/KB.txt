@@ -45,7 +45,7 @@ bad_cycles_sum :
 ['bad_cycles_sum']
 ----------------------------------------------------------------------------
 cost_per_cycle :
-['A°sum°mo[ S°*[S°/[ R°consumption_sum°T°m°o° ; R°cycles_sum°T°m°o° ]] ; R°cost_sum°T°m°o°]', 'A°sum°mo[ A°sum°t[ D°consumption_sum°t°m°o° ] ]', 'A°sum°mo[ A°sum°t[ D°cycles_sum°t°m°o° ]]', 'A°sum°mo[ A°sum°t[ D°cost_sum°t°m°o° ] ]']
+['A°sum°mo[ S°*[S°/[ R°consumption_sum°T°m°o° ; R°cycles_sum°T°m°o° ]; R°cost_sum°T°m°o°]]', 'A°sum°mo[ A°sum°t[ D°consumption_sum°t°m°o° ] ]', 'A°sum°mo[ A°sum°t[ D°cycles_sum°t°m°o° ]]', 'A°sum°mo[ A°sum°t[ D°cost_sum°t°m°o° ] ]']
 ['R8VHLqifuXU4igLg4MsS0X9', 'R0MKtB1FGsxLy4i1gr1sV9', 'RB8j5Hueb5Uhq9155yIWWeE', 'R4r84xwBOFiwnSO3LWja5X']
 ['cost_per_cycle', 'consumption_sum', 'cycles_sum', 'cost_sum']
 ----------------------------------------------------------------------------

@@ -21,7 +21,6 @@ class KPIRequest(BaseModel):
     end_date: datetime
     step: int
 
-
     @validator("name")
     def validate_name(cls, value):
         if not isinstance(value, str):
@@ -33,21 +32,18 @@ class KPIRequest(BaseModel):
         if not isinstance(value, list):
             raise ValueError("Machine name must be a list.")
         return value
-    
-    
+
     @validator("operations")
     def validate_operations(cls, value):
         if not isinstance(value, list):
             raise ValueError("Operation name must be a list.")
         return value
-    
-    
+
     @validator("step")
     def validate_step(cls, value):
         if not isinstance(value, int):
             raise ValueError("The step must be a integer.")
         return value
-    
 
     @validator("time_aggregation")
     def validate_time_aggregation(cls, value):

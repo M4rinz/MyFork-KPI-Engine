@@ -1,12 +1,10 @@
-
 import unittest
 from unittest.mock import patch, MagicMock
 from datetime import datetime
-import pandas as pd
-from src.app.kpi_engine.kpi_engine import KPIEngine, InvalidKPINameException
+from src.app.kpi_engine.kpi_engine import KPIEngine
 from src.app.kpi_engine.kpi_request import KPIRequest
 from src.app.kpi_engine.kpi_response import KPIResponse
-from src.app.db import get_kpi_db
+from src.app.kpi_engine.exceptions import InvalidKPINameException
 from sqlalchemy.orm import Session
 import KB.kb_interface as kbi
 
@@ -20,12 +18,12 @@ class TestKPIEngine(unittest.TestCase):
             time_aggregation="sum",
             start_date=datetime(2023, 1, 1),
             end_date=datetime(2023, 12, 31),
-            step=7
+            step=7,
         )
         self.aggregations = ["sum", "mean", "max", "min", "std", "var"]
         self.expected_results = [10.0, 5.0, 7.0, 3.0, 2.0, 4.0]
         kbi.start()
-        self.db = get_kpi_db()
+        self.db = MagicMock(spec=Session)
 
     # @patch("src.app.kpi_engine.kpi_engine.get_kpi_formula")
     # @patch("pandas.read_sql")
@@ -36,12 +34,12 @@ class TestKPIEngine(unittest.TestCase):
         ):
             with self.subTest(aggregation=aggregation):
                 # Mock the response for get_kpi_formula
-                #mock_get_kpi_formula.return_value = "A + B"
+                # mock_get_kpi_formula.return_value = "A + B"
 
                 self.request.time_aggregation = aggregation
 
                 result = KPIEngine.compute(
-                    db=self.db,
+                    connection=self.db,
                     request=self.request,
                 )
 

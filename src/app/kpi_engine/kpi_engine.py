@@ -2,20 +2,13 @@
 
 from src.app.kpi_engine.kpi_request import KPIRequest
 from src.app.kpi_engine.kpi_response import KPIResponse
-from src.app.models import RealTimeData, AggregatedKPI
 import src.app.kpi_engine.dynamic_calc as dyn
-from sqlalchemy.orm import Session
-import re
-import pandas as pd
-import numpy as np
-import numexpr
+import src.app.kpi_engine.exceptions as exceptions
 
 import KB.kb_interface as kbi
 
 
 class KPIEngine:
-
-
     @staticmethod
     def compute(connection, request: KPIRequest) -> KPIResponse:
 
@@ -28,14 +21,15 @@ class KPIEngine:
 
         # validate machines and operations
         if len(machines) != len(operations):
-            return KPIResponse(message="Invalid number of machines and operations", value=-1)
+            return KPIResponse(
+                message="Invalid number of machines and operations", value=-1
+            )
 
         # get the formula from the KB
         try:
             formulas = get_kpi_formula(name)
-        except InvalidKPINameException as e:
-            print(e)
-            return KPIResponse(message="Invalid KPI name", value=-1)
+        except Exception as e:
+            return KPIResponse(message=repr(e), value=-1)
 
         start_date = request.start_date
         end_date = request.end_date
@@ -44,13 +38,16 @@ class KPIEngine:
         # inits the kpi calculation by finding the outermost aggregation and involved aggregation variables
         partial_result = preprocessing(name, formulas)
 
-        # computes the final matrix that has to be aggregated for mo and time_aggregation
-        result = dyn.dynamic_kpi(formulas[name], formulas, partial_result, connection, request)
-
+        try:
+            # computes the final matrix that has to be aggregated for mo and time_aggregation
+            result = dyn.dynamic_kpi(
+                formulas[name], formulas, partial_result, connection, request
+            )
+        except dyn.EmptyQueryException as e:
+            return KPIResponse(message=e, value=-1)
 
         # aggregated on time
         result = dyn.finalize_mo(result, partial_result, request.time_aggregation)
-
 
         message = (
             f"The {aggregation} of KPI {name} for machines {machines} with operations {operations} "
@@ -58,7 +55,7 @@ class KPIEngine:
         )
 
         insert_aggregated_kpi(
-            db=connection,
+            connection=connection,
             request=request,
             kpi_list=formulas.keys(),
             value=result,
@@ -66,48 +63,59 @@ class KPIEngine:
 
         return KPIResponse(message=message, value=result)
 
+
 def preprocessing(kpi_name, formulas_dict):
 
     partial_result = {}
     # get the actual formula of the kpi
     kpi_formula = formulas_dict[kpi_name]
     # get the variables of the aggregation
-    search_var = kpi_formula.split('°')
+    search_var = kpi_formula.split("°")
     # split because we always have [ after the last match of the aggregation
-    aggregation_variables = search_var[2].split('[')
-    partial_result['var'] = aggregation_variables[0]
-    partial_result['agg'] = search_var[1]
+    aggregation_variables = search_var[2].split("[")
+    partial_result["var"] = aggregation_variables[0]
+    partial_result["agg"] = search_var[1]
     return partial_result
 
 
-
 def insert_aggregated_kpi(
-    db: Session, request: KPIRequest, kpi_list: list, value: float
+    connection, request: KPIRequest, kpi_list: list, value: float
 ):
+    cursor = connection.cursor()
 
-    aggregated_kpi = AggregatedKPI(
-        kpi_list=kpi_list,
-        name=request.name,
-        value=value,
-        begin=request.start_date,
-        end=request.end_date,
-        machines=request.machines,
-        operations=request.operations,
-        step=request.step,
+    # Step 3: Define your SQL insert query
+    # You can either use string formatting or parameterized queries to prevent SQL injection
+    insert_query = """
+        INSERT INTO aggregated_kpi (name, aggregated_value, begin_datetime, end_datetime, kpi_list, operations, machines, step)
+        VALUES (%s, %s, %s, %s, %s, %s, %s, %s);
+    """
+
+    # Step 4: Define the data to be inserted
+    # Example data to insert
+    data = (
+        request.name,
+        value,
+        request.start_date,
+        request.end_date,
+        kpi_list,
+        request.operations,
+        request.machines,
+        request.step,
     )
 
-    db.add(aggregated_kpi)
-    db.commit()
-    db.refresh(aggregated_kpi)
+    # Step 5: Execute the insert query with the data
+    cursor.execute(insert_query, data)
+
+    # Step 6: Commit the transaction to make sure changes are saved
+    connection.commit()
+
+    # Step 7: Close the cursor and connection
+    cursor.close()
+    connection.close()
 
 
 def get_kpi_formula(name: str):
     formulas = kbi.get_formulas(name)
     if formulas is None:
-        raise InvalidKPINameException()
+        raise exceptions.InvalidKPINameException()
     return formulas
-
-
-class InvalidKPINameException(Exception):
-    def __init__(self):
-        super().__init__("Invalid KPI name")
