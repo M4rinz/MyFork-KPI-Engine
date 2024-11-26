@@ -1,352 +1,248 @@
-
+import os
 import random
-from src.app.kpi_engine.kpi_request import KPIRequest
-from src.app.kpi_engine.kpi_response import KPIResponse
-from src.app.models import RealTimeData, AggregatedKPI
 
+from dotenv import load_dotenv
 from sqlalchemy.orm import Session
-import requests
+
+from src.app.kpi_engine.kpi_request import KPIRequest
+import src.app.kpi_engine.grammar as grammar
+import psycopg2
+
 import re
 import pandas as pd
 import numpy as np
-import numexpr
-from datetime import datetime
+
+from src.app.models import RealTimeData
+
+load_dotenv()
 
 
-['A°sum°mo[ S°/[ R°consumption_sum°T°m°o° ; R°time_sum°T°m°o° ]]',
-  'A°sum°mo[ A°sum°t[ D°consumption_sum°t°m°o° ] ]', 
-  'A°sum°mo[ A°sum°t[ D°time_sum°t°m°o° ]]']
+def dynamic_kpi(kpi, formulas_dict, partial_result: dict, connection, request: KPIRequest, **kwargs):
 
-
-nome='power_cumulative'
-kpi = ""
-kpi_list = {'power_cumulative':"A°mean°mo[S°/[R°consumption_sum°T°m°o;R°time_sum°T°m°o]]",'consumption_sum':"A°sum°mo[A°sum°t[D°consumption_sum°T°m°o]]", 'time_sum':'A°sum°mo[A°sum°t[D°time_sum°t°m°o°]]'}
-partial={}
-
-
-def preprocessing():
-    #preparazione che avviene fuori
-    kpi=kpi_list[nome]
-    #prendiamo la variabile su cui si aggrega
-    serach_var=kpi.split('°')
-    var=serach_var[2].split('[')
-    partial['var']=var[0]
-    partial['agg']=serach_var[1]
-
-
-
-def KPI_calculate(kpi, kpi_list,partial,db:Session,start_date,end_date,machine,step):
-
-    pattern = re.compile(r'\[([^\[\]]*)\]')
+    # find the body of the innermost wrapping of the formula with []
+    pattern = re.compile(r'\[([^\[\]]*)]')
     match = pattern.search(kpi)
 
+    # if we find a match we need to recursively calculate the inner content
     if match:
+
         inner_content = match.group(0)
-        print("\n")
-        #inner_content = re.sub(r'\[|\]', '', inner_content)
-        print("Processing: ", inner_content)
-    
-        output=[]
+        # where to save the partial results of the recursion
+        output = []
+        # case in which we match S°
         if ';' in inner_content:
-            parts = inner_content.split(';')
-            for part in parts:
-                part = re.sub(r'\[|\]', '', part)
-                result = KPI_calculate(part, kpi_list,partial)
-                output.append(result)
+            left, right = inner_content.split(';')
+            # the [ and ] are kept
+            left = re.sub(r'[\[\]]', '', left)
+            right = re.sub(r'[\[\]]', '', right)
+            output.append(dynamic_kpi(left, formulas_dict, partial_result, connection, request, **kwargs))
+            output.append(dynamic_kpi(right, formulas_dict, partial_result, connection, request, **kwargs))
+
+        # case in which we do not match S°
         else:
-            part = re.sub(r'\[|\]', '', inner_content)
-            result = KPI_calculate(part, kpi_list,partial)
-            output.append(result)
+            part = re.sub(r'[\[\]]', '', inner_content)
+            output.append(dynamic_kpi(part, formulas_dict, partial_result, connection, request, **kwargs))
 
-
+        # substitute the inner content with the calculated value with a comma to avoid infinite recursion
         remaining_string = kpi.replace(inner_content, str(','.join(map(str, output))), 1)
-        print("Remaining string: ", remaining_string)        
-        result = KPI_calculate(remaining_string, kpi_list,partial) 
-        
-        return result
+        return dynamic_kpi(remaining_string, formulas_dict, partial_result, connection, request, **kwargs)
+
+    # else we have to discover if it is a D°, A°, S°, R° or C°
+
+
+    # strip the kpi from the brackets
+    kpi = re.sub(r'[\[\]]', '', kpi).strip()
+    # get the first letter which is always the operation
+    operation = kpi[0]
+
+
+    # access the function by the operation
+    function = globals()[operation]
+
+    return function(
+        kpi=kpi,
+        partial_result=partial_result,
+        formulas_dict=formulas_dict,
+        engine=connection,
+        request=request,
+        **kwargs
+    )
+
+
+def query_DB(kpi, connection, request: KPIRequest, **kwargs):
+
+    print("D° KPI", kpi)
+
+    kpi_split = kpi.split('°')[1]
+
+    match = re.search(r'^(.*)_(.+)$', kpi_split)
+    if match:
+        before_last_underscore = match.group(1)
+        after_last_underscore = match.group(2)
     else:
-        kpi = re.sub(r'\[|\]', '', kpi)
-        print("Processing base case: ", kpi)
-        operation = kpi[0]
-        print(operation)
-        if operation in ['S', 'A', 'R', 'D','°','C']:
-            if operation == 'S':
-
-                return S_operation(kpi,partial)
-
-            elif operation == 'A':
-
-                return A_aggregation(kpi,partial)
-                
-
-            elif operation == 'R':
-
-                #i check for the kpi
-                kpi_split=kpi.split('°')
-                kpi_involved=kpi_split[1]
-                print("kpi coinvoloto "+kpi_involved)
+        raise ValueError(f"DB query - invalid DB reference: {kpi_split}")
 
 
-                #check if the string is in other formula
-                if kpi_involved in kpi_list:
-                    return str(KPI_calculate(kpi_list[kpi_involved],kpi_list,partial))
-                #trovo la corrispondernza
-                else:
-                    return '°no'
-                
-                      
-            elif operation == 'D':
+# SELECT kpi, time,machine_operation value FROM RealTimeData
+    # WHERE kpi IN (involved_kpis)
+    # AND machine in machines
+    # and operation in operations
+    # AND time between start_date, end_date
 
-                #devo fare la query
-                #a=dataframe
-                dataframe=query_DB(db,start_date,end_date,machine,operation,kpi,step)
-                
-                key=random.randint(1, 100)
+    tuple_machines = '(' + ', '.join([f"'{machine}'" for machine in request.machines]) + ')'
+    tuple_operations = '(' + ', '.join([f"'{operation}'" for operation in request.operations]) + ')'
 
-                key=str(key)
+    raw_query_statement = f"""
+    SELECT asset_id, operation, time, {after_last_underscore} 
+    FROM real_time_data
+    WHERE kpi = '{before_last_underscore}'
+    AND operation IN {tuple_operations}
+    AND name IN {tuple_machines}
+    AND time BETWEEN '{request.start_date}' AND '{request.end_date}'
+    """
 
-                #controllo che la chiave non sia presa
-                while True:
-                    if key in partial:
-                        key=random.randint(1, 100)
-                        key=str(key)
-                    else:
-                        break
+    print("Raw query statement", raw_query_statement)
+    cursor = connection.cursor()
+    cursor.execute(raw_query_statement)
 
-                #inserisco il valore all'interno del dataframe dei valori parziali
-                partial[key]=dataframe
+    dataframe = pd.DataFrame(cursor.fetchall(), columns=['asset_id', 'operation', 'time', f'{after_last_underscore}'])
 
-                print(partial)
-                return "°"+key
-            
-            #caso in cui incontro una costante
-            elif operation == 'C':
-
-                #genero una chiave 
-                key=random.randint(1, 100)
-                key=str(key)
-
-                #controllo che la chiave non sia presa
-                while True:
-                    if key in partial:
-                        key=random.randint(1, 100)
-                        key=str(key)
-                    else:
-                        break
-                
-                div=kpi.split('°')
-
-                partial[key]=int(div[1])
-
-                return "°"+key
-            
-            elif operation=='°':
-                chiave=kpi.replace('°','')
-                result=getattr(np,partial['agg'])(partial[chiave],axis=0)
-                return str(result)
-            
-                
-                
+    print("Dataframe head", dataframe.head())
 
 
-#scrivo funzione di gestione
-#facciamo che ho trovato D quindi devo andare a controllare il database
-#i need to do the query with the values that i have so the ones that came from the request of the RAG
-def query_DB(db:Session,start_date,end_date,machine,operation,stringa,step):
-        
-        #prendo la stringa
-        lista_stringa= stringa.split('°')
-        match = re.search(r'^(.*)_(.+)$', lista_stringa[1])
-        if match:
-            before_last_underscore = match.group(1)
-            after_last_underscore = match.group(2)
+    numpy_data = dataframe.pivot(
+        index="time", columns=['asset_id', 'operation'], values=f'{after_last_underscore}'
+    ).reset_index().select_dtypes('number').to_numpy()
 
-    # SELECT kpi, time,machine_operation value FROM RealTimeData
-        # WHERE kpi IN (involved_kpis)
-        # AND machine = machine
-        # and operation= operation
-        # AND time between start_date, end_date
-        raw_query_statement = (
-            db.query(RealTimeData)
-            .filter(
-                RealTimeData.kpi== before_last_underscore,
-                RealTimeData.name.in_(machine),
-                RealTimeData.time.between(start_date, end_date),
-                RealTimeData.operations.in_(operation)
-            )
-            .with_entities(RealTimeData.name ,RealTimeData.operations,RealTimeData.time,getattr(RealTimeData,after_last_underscore))
-            .statement
-        )
+    print("Numpy shape", numpy_data.shape)
 
-        dataframe = pd.read_sql(raw_query_statement, db.bind)
-        
-        pivot_table = dataframe.pivot(
-            index="Date", columns=['C'], values="max"
-        ).reset_index().select_dtypes('number')
+    step = request.step
+    remainder = numpy_data.shape[0] % step
+    bottom = None
+
+    # the step splits perfectly
+    if remainder == 0:
+        step_split = numpy_data.reshape(numpy_data.shape[0] // step, step, numpy_data.shape[1])
+    # divide the numpy array in two parts, the first part is the step split and the second is the remainder
+    else:
+        # get the bottom part of the numpy array
+        bottom = numpy_data[-remainder:]
+        # bring it to three dimensions
+        bottom = bottom.reshape(1, *bottom.shape)
+        numpy_data = numpy_data[:-remainder]
+        step_split = numpy_data.reshape(numpy_data.shape[0] // step, step, numpy_data.shape[1])
+
+    return step_split, bottom
 
 
-        resto=pivot_table.shape[0]%step
-        nc=[]
-        if resto==0:
-            nc = pivot_table.reshape(pivot_table.shape[0] // step, step, pivot_table.shape[1])
-        else:
-            resto=pivot_table.shape[0]% step
-            fondo=pivot_table[-resto:]
-            pivot_table = pivot_table[:-resto]
-            nc = pivot_table.reshape(pivot_table.shape[0] // step, step, pivot_table.shape[1])
-            
-        
-        return nc
+def A(kpi, partial_result, **kwargs):
 
+    print("KPI", kpi)
 
-#gestione delle aggregazioni
+    # keys_inv is the key of the dictionary with the partial result associated with the kpi
+    keys_inv = keys_involved(kpi, partial_result)[0]
 
-def A_aggregation(kpi,partial):
-    
-    # check for the key involved in the aggregation
-    keys_inv = keys_involved(kpi)
-    print(keys_inv)
+    print("A°", keys_inv)
 
+    # get the variable on which partial_result[key] should be aggregated
+    var = kpi.split('°')[2]
 
-    var=kpi.split('°')[2]
-    #selezionniamo la direzione in cui si opera
-    asse=1
-    if var=='mo':
-        asse=0
-   
-    
-    if var==partial['var']:
-        result=f"°{keys_inv[0]}"
-    
+    # if they match the outermost aggregation, we return the key
+    if var == partial_result['var']:
+        return f"°{keys_inv}"
 
-    elif 'mean' in kpi:
+    # time aggregation on the split of step
+    for aggregation in grammar.aggregations:
+        if aggregation in kpi:
+            np_split, np_bottom = partial_result[keys_inv]
 
-        #considering the mean operation
-        result=getattr(np,'nanmean')(partial[keys_inv[0]],axis=asse)
+            # the queried dataframe is split perfectly by the step
+            if np_bottom is None:
+                result = getattr(np, 'nan' + aggregation)(np_split, axis=1)
+                partial_result[keys_inv] = result
+                # print(partial_result)
+                return f"°{keys_inv}"
 
-        #i cut one dimension so i save again in the same partial result
-        partial[keys_inv[0]]=result
-        print(partial)
-        result=f"°{keys_inv[0]}"
-        
+            # handle the case in which the dataframe is split in two parts: aggregate and merge them
+            result_split = getattr(np, 'nan' + aggregation)(np_split, axis=1)
+            result_bottom = getattr(np, 'nan' + aggregation)(np_bottom, axis=1)
+            partial_result[keys_inv] = np.concatenate((result_split, result_bottom), axis=0)
+            # print(partial_result)
+            return f"°{keys_inv}"
 
-    elif 'max' in kpi:
-
-        #considering the max operation
-        getattr(np,'nanmax')(partial[keys_inv[0]],axis=asse)
-        #i cut one dimension so i save again in the same partial result
-        partial[keys_inv[0]]=result
-        print(partial)
-        result=f"°{keys_inv[0]}"
-              
-    elif 'min' in kpi:
-
-        #considering the min operation
-        getattr(np,'nanmin')(partial[keys_inv[0]],axis=asse)
-        partial[keys_inv[0]]=result
-        print(partial)
-        result=f"°{keys_inv[0]}"
-    
-    elif 'std' in kpi:
-
-        #considering the std operation
-        getattr(np,'nanstd')(partial[keys_inv[0]],axis=asse)
-        partial[keys_inv[0]]=result
-        print(partial)
-        result=f"°{keys_inv[0]}"
-    
-    elif 'sum' in kpi:
-
-        #considering the sum operation
-        result=getattr(np,'nansum')(partial[keys_inv[0]],axis=asse)
-        partial[keys_inv[0]]=result
-        print(partial)
-        result=f"°{keys_inv[0]}"
-              
-    elif 'var' in kpi:
-
-        #considering the var operation
-        getattr(np,'nanvar')(partial[keys_inv[0]],axis=asse)
-        partial[keys_inv[0]]=result
-        print(partial)
-        result=f"°{keys_inv[0]}"
-
-    
-    return result
+    raise ValueError(f"Aggregation {var} not found in the list of aggregations. The list of aggregations is {grammar.aggregations}")
 
 
 # pairwise operation involving two elements
-def S_operation(kpi,partial):
+def S(kpi, partial_result, **kwargs):
+    left, right = keys_involved(kpi, partial_result)
 
-    # we find the key that are involved
-    keys_inv = keys_involved(kpi)
+    operations = {
+        '+': lambda x, y: x + y,
+        '-': lambda x, y: x - y,
+        '*': lambda x, y: x * y,
+        '/': lambda x, y: x / y,
+        '**': lambda x, y: x ** y
+    }
 
-    print(keys_inv)
+    for op, func in operations.items():
+        if op in kpi:
+            result = func(partial_result[left], partial_result[right])
+            partial_result[left] = result
+            # print(partial_result)
+            return f"°{left}"
 
-    #we check for every possible element according to the grammar that we define
+    return None
 
-    if '+' in kpi:
-        # we consider the operation +
-        result= partial[keys_inv[0]]+partial[keys_inv[1]]
-        partial[keys_inv[0]]=result
-        print(partial)
-        result=f"°{keys_inv[0]}"
+def R(kpi, partial_result, formulas_dict, engine, request, **kwargs):
 
-    elif '-' in kpi:
-        # we consider the operation -
-        result= partial[keys_inv[0]]-partial[keys_inv[1]]
-        partial[keys_inv[0]]=result
-        print(partial)
-        result=f"°{keys_inv[0]}"
-              
-    elif '*' in kpi:
-        # we consider the operation *
-        result= partial[keys_inv[0]]*partial[keys_inv[1]]
-        partial[keys_inv[0]]=result
-        print(partial)
-        result=f"°{keys_inv[0]}"
-    
-    elif '/' in kpi:
-        # we consider the operation /
-        result= partial[keys_inv[0]]/partial[keys_inv[1]]
-        partial[keys_inv[0]]=result
-        print(partial)
-        result=f"°{keys_inv[0]}"
-    
-    elif '**' in kpi:
-        # we consider the operation **
-        result= partial[keys_inv[0]]**partial[keys_inv[1]]
-        partial[keys_inv[0]]=result
-        print(partial)
-        result=f"°{keys_inv[0]}"
-              
+    print("KPI", kpi)
+    kpi_split = kpi.split('°')
+    kpi_involved = kpi_split[1]
+
+    print("R°", kpi_involved)
+
+    if kpi_involved in formulas_dict:
+        return str(dynamic_kpi(formulas_dict[kpi_involved], formulas_dict, partial_result, engine, request, **kwargs))
+
+    raise ValueError(f"KPI {kpi} not found in the list of KPIs. The list of KPIs is {formulas_dict.keys()}")
+
+def D(kpi, partial_result, engine, request, **kwargs):
+
+    step_split, bottom = query_DB(kpi, engine, request)
+
+    key = str(random.randint(1, 100))
+
+    while key in partial_result:
+        key = str(random.randint(1, 100))
+
+    partial_result[key] = (step_split, bottom)
+    # print(partial_result)
+    return "°" + key
+
+def C(kpi, partial_result, **kwargs):
+    key = str(random.randint(1, 100))
+
+    while key in partial_result:
+        key = str(random.randint(1, 100))
+
+    div = kpi.split('°')
+    partial_result[key] = int(div[1])
+    return "°" + key
+
+
+def finalize_mo(final_formula, partial_result, time_aggregation):
+    # final formula is of the for '°key' where key is the key of the dictionary with the partial result
+    key = final_formula.replace('°', '')
+    result = getattr(np, partial_result['agg'])(partial_result[key], axis=1)
     return result
 
 
-# si va a trovare le chiavi che sono coinvolte
-def keys_involved(stringa):
-
-    sep=stringa.split('°')
-    chiavi=[]
-
-    if sep[0]=='S':
-        sep[2]=sep[2].replace(',','')
-
-    for i in sep:
-        if i in partial:
-            chiavi.append(i)
-
-    return chiavi
 
 
+def keys_involved(kpi, partial_result):
+    sep = kpi.split('°')
+    if sep[0] == 'S':
+        sep[2] = sep[2].replace(',', '')
+    return [i for i in sep if i in partial_result]
 
-# it used to compute the last things
-def risultato(result,partial):
-
-    chiave=result.replace('°','')
-    result=getattr(np,partial['agg'])(partial[chiave],axis=1)
-    return result
-                
-
-
-print("Done with result:")

@@ -2,11 +2,12 @@
 
 from fastapi import FastAPI, Depends, HTTPException
 from sqlalchemy.orm import Session
-from src.app.db import get_kpi_db
+from src.app.db import get_connection
 from src.app.kpi_engine.kpi_engine import KPIEngine
 from src.app.kpi_engine.kpi_request import KPIRequest
 from src.app.kpi_engine.kpi_response import KPIResponse
 import uvicorn
+
 
 app = FastAPI()
 
@@ -18,7 +19,7 @@ def start():
 @app.post("/kpi/")
 async def get_kpi(
     request: KPIRequest,
-    db: Session = Depends(get_kpi_db),
+    db = Depends(get_connection),
 ) -> KPIResponse:
     """
     Endpoint to get a calculated KPI by item_id using data from two databases.

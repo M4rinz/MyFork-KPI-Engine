@@ -29,6 +29,8 @@ COPY ./src/ /kpi_engine/src
 # Copy local .env file for DB connection
 COPY .env /kpi_engine/
 
+COPY KB /kpi_engine/KB
+
 # Expose port 8000
 EXPOSE 8000
 

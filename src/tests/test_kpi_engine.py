@@ -6,67 +6,43 @@ import pandas as pd
 from src.app.kpi_engine.kpi_engine import KPIEngine, InvalidKPINameException
 from src.app.kpi_engine.kpi_request import KPIRequest
 from src.app.kpi_engine.kpi_response import KPIResponse
+from src.app.db import get_kpi_db
 from sqlalchemy.orm import Session
+import KB.kb_interface as kbi
 
 
 class TestKPIEngine(unittest.TestCase):
     def setUp(self):
-        self.mock_dataframe = pd.DataFrame(
-            {
-                "kpi": ["A", "B", "A", "B"],
-                "time": [
-                    datetime(2023, 1, 1),
-                    datetime(2023, 1, 1),
-                    datetime(2023, 1, 2),
-                    datetime(2023, 1, 2),
-                ],
-                "value": [1, 2, 3, 4],
-            }
-        )
         self.request = KPIRequest(
-            name="test_kpi",
-            machine="machine1",
-            aggregation="sum",
+            name="power_cumulative",
+            machines=["machine1", "machine2"],
+            operations=["operation1", "operation2"],
+            time_aggregation="sum",
             start_date=datetime(2023, 1, 1),
             end_date=datetime(2023, 12, 31),
+            step=7
         )
         self.aggregations = ["sum", "mean", "max", "min", "std", "var"]
         self.expected_results = [10.0, 5.0, 7.0, 3.0, 2.0, 4.0]
+        kbi.start()
+        self.db = get_kpi_db()
 
-    @patch("src.app.kpi_engine.kpi_engine.get_kpi_formula")
-    @patch("pandas.read_sql")
-    @patch("sqlalchemy.orm.Session.query")
-    def test_compute_valid_kpi(self, mock_query, mock_read_sql, mock_get_kpi_formula):
+    # @patch("src.app.kpi_engine.kpi_engine.get_kpi_formula")
+    # @patch("pandas.read_sql")
+    # @patch("sqlalchemy.orm.Session.query")
+    def test_compute_valid_kpi(self):
         for aggregation, expected_result in zip(
             self.aggregations, self.expected_results
         ):
             with self.subTest(aggregation=aggregation):
                 # Mock the response for get_kpi_formula
-                mock_get_kpi_formula.return_value = "A + B"
+                #mock_get_kpi_formula.return_value = "A + B"
 
-                # Create a mock query object to chain the query calls
-                mock_filter = MagicMock()
-                mock_with_entities = MagicMock()
-                mock_statement = "mock_statement"
-
-                # Set up the mock chain for query -> filter -> with_entities -> statement
-                mock_query.return_value = mock_filter
-                mock_filter.filter.return_value = mock_with_entities
-                mock_with_entities.with_entities.return_value = mock_with_entities
-                mock_with_entities.statement = mock_statement
-
-                # Simulate the DataFrame that would be returned by read_sql
-                mock_read_sql.return_value = self.mock_dataframe
-
-                # Mock the 'bind' attribute of the Session to return the mock connection
-                mock_DB = MagicMock(spec=Session)
-                mock_DB.bind = "mock_bind"
-
-                self.request.aggregation = aggregation
+                self.request.time_aggregation = aggregation
 
                 result = KPIEngine.compute(
-                    db=mock_DB,
-                    details=self.request,
+                    db=self.db,
+                    request=self.request,
                 )
 
                 self.assertIsInstance(result, KPIResponse)
@@ -96,7 +72,7 @@ class TestKPIEngine(unittest.TestCase):
         # Simulate the `compute` method
         result = KPIEngine.compute(
             db=MagicMock(spec=Session),  # Mock the real-time data session
-            details=details,
+            request=details,
         )
 
         # Verify that the formula fetch failed as expected

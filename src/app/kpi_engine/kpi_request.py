@@ -13,7 +13,6 @@ class KPIRequest(BaseModel):
     - End date
     """
 
-    # sono andato ad aggiungere operation e aggregation
     name: str
     machines: list
     operations: list
@@ -22,13 +21,6 @@ class KPIRequest(BaseModel):
     end_date: datetime
     step: int
 
-    #devo inserire l'operazione e lo step
-
-    @validator("start_date", "end_date", pre=True)
-    def validate_datetime(cls, value):
-        if not isinstance(value, datetime):
-            raise ValueError("The date must be a datetime object.")
-        return value
 
     @validator("name")
     def validate_name(cls, value):
