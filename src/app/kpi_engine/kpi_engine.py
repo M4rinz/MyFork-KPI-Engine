@@ -83,15 +83,14 @@ def preprocessing(kpi_name, formulas_dict):
 def insert_aggregated_kpi(connection, request: KPIRequest, kpi_list: list, value):
     cursor = connection.cursor()
 
-    # Step 3: Define your SQL insert query
-    # You can either use string formatting or parameterized queries to prevent SQL injection
+    
+   
     insert_query = """
         INSERT INTO aggregated_kpi (name, aggregated_value, begin_datetime, end_datetime, kpi_list, operations, machines, step)
         VALUES (%s, %s, %s, %s, %s, %s, %s, %s);
     """
 
-    # Step 4: Define the data to be inserted
-    # Example data to insert
+    
     data = (
         request.name,
         value.item(),
@@ -105,13 +104,13 @@ def insert_aggregated_kpi(connection, request: KPIRequest, kpi_list: list, value
 
     print(data)
 
-    # Step 5: Execute the insert query with the data
+    
     cursor.execute(insert_query, data)
 
-    # Step 6: Commit the transaction to make sure changes are saved
+    
     connection.commit()
 
-    # Step 7: Close the cursor and connection
+    
     cursor.close()
     connection.close()
 
