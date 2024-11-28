@@ -165,7 +165,7 @@ def A(kpi, partial_result, **kwargs):
     var = kpi.split("°")[2]
 
     # if they match the outermost aggregation, we return the key
-    if var == partial_result["var"]:
+    if var == partial_result["agg_outer_vars"]:
         return f"°{keys_inv}"
 
     # time aggregation on the split of step
@@ -194,24 +194,17 @@ def A(kpi, partial_result, **kwargs):
 
 # pairwise operation involving two elements
 def S(kpi, partial_result, **kwargs):
+
     left, right = keys_involved(kpi, partial_result)
 
-    operations = {
-        "+": lambda x, y: x + y,
-        "-": lambda x, y: x - y,
-        "*": lambda x, y: x * y,
-        "/": lambda x, y: x / y,
-        "**": lambda x, y: x**y,
-    }
-
-    for op, func in operations.items():
-        if op in kpi:
-            result = func(partial_result[left], partial_result[right])
-            partial_result[left] = result
-            return f"°{left}"
+    op = next((op for op in grammar.operators if op in kpi), None)
+    if op:
+        # Perform the operation and update the partial result
+        partial_result[left] = eval(f"partial_result[left] {op} partial_result[right]")
+        return f"°{left}"
 
     raise exceptions.InvalidBinaryOperatorException(
-        f"Binary operator not found in the list of operations. The list of operations is {operations.keys()}"
+        f"Binary operator not found in the list of operations: {grammar.operators}"
     )
 
 
@@ -242,7 +235,6 @@ def D(kpi, partial_result, engine, request, **kwargs):
     step_split, bottom = query_DB(kpi, engine, request)
 
     key = str(random.randint(1, 100))
-
     while key in partial_result:
         key = str(random.randint(1, 100))
 
@@ -251,8 +243,8 @@ def D(kpi, partial_result, engine, request, **kwargs):
 
 
 def C(kpi, partial_result, **kwargs):
-    key = str(random.randint(1, 100))
 
+    key = str(random.randint(1, 100))
     while key in partial_result:
         key = str(random.randint(1, 100))
 
@@ -272,4 +264,5 @@ def keys_involved(kpi, partial_result):
     sep = kpi.split("°")
     if sep[0] == "S":
         sep[2] = sep[2].replace(",", "")
-    return [i for i in sep if i in partial_result]
+    result = [i for i in sep if i in partial_result]
+    return result

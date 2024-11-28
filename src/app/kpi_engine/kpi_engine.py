@@ -73,7 +73,7 @@ def preprocessing(kpi_name, formulas_dict):
     search_var = kpi_formula.split("°")
     # split because we always have [ after the last match of the aggregation
     aggregation_variables = search_var[2].split("[")
-    partial_result["var"] = aggregation_variables[0]
+    partial_result["agg_outer_vars"] = aggregation_variables[0]
     partial_result["agg"] = search_var[1]
     return partial_result
 
@@ -81,13 +81,10 @@ def preprocessing(kpi_name, formulas_dict):
 def insert_aggregated_kpi(connection, request: KPIRequest, kpi_list: list, value):
     cursor = connection.cursor()
 
-
-
     insert_query = """
         INSERT INTO aggregated_kpi (name, aggregated_value, begin_datetime, end_datetime, kpi_list, operations, machines, step)
         VALUES (%s, %s, %s, %s, %s, %s, %s, %s);
     """
-
 
     data = (
         request.name,
@@ -100,20 +97,12 @@ def insert_aggregated_kpi(connection, request: KPIRequest, kpi_list: list, value
         request.step,
     )
 
-    print(data)
-
-
     cursor.execute(insert_query, data)
-
 
     connection.commit()
 
-
     cursor.close()
     connection.close()
-
-
-
 
 
 def get_kpi_formula(name: str):
