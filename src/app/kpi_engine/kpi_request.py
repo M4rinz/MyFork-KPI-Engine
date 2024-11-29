@@ -14,16 +14,12 @@ class KPIRequest(BaseModel):
     """
 
     name: str
-    machine: str
-    aggregation: str
+    machines: list
+    operations: list
+    time_aggregation: str
     start_date: datetime
     end_date: datetime
-
-    @validator("start_date", "end_date", pre=True)
-    def validate_datetime(cls, value):
-        if not isinstance(value, datetime):
-            raise ValueError("The date must be a datetime object.")
-        return value
+    step: int
 
     @validator("name")
     def validate_name(cls, value):
@@ -31,14 +27,28 @@ class KPIRequest(BaseModel):
             raise ValueError("KPI name must be a string.")
         return value
 
-    @validator("machine")
-    def validate_machine(cls, value):
-        if not isinstance(value, str):
-            raise ValueError("Machine name must be a string.")
+    @validator("machines")
+    def validate_machines(cls, value):
+        if not isinstance(value, list):
+            raise ValueError("Machine name must be a list.")
         return value
 
-    @validator("aggregation")
-    def validate_aggregation(cls, value):
+    @validator("operations")
+    def validate_operations(cls, value):
+        if not isinstance(value, list):
+            raise ValueError("Operation name must be a list.")
+        return value
+
+    @validator("step")
+    def validate_step(cls, value):
+        if not isinstance(value, int):
+            raise ValueError("The step must be a integer.")
+        if value < 0:
+            raise ValueError("The step must be a positive integer.")
+        return value
+
+    @validator("time_aggregation")
+    def validate_time_aggregation(cls, value):
         if not isinstance(value, str):
             raise ValueError("Aggregation function must be a string.")
         if value not in grammar.aggregations:

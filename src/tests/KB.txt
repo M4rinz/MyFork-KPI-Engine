@@ -1,0 +1,85 @@
+----------------------------------------------------------------------------
+consumption_sum :
+['A°sum°mo[ A°sum°t[ D°consumption_sum°t°m°o° ] ]']
+['R0MKtB1FGsxLy4i1gr1sV9']
+['consumption_sum']
+----------------------------------------------------------------------------
+cost_sum :
+['A°sum°mo[ A°sum°t[ D°cost_sum°t°m°o° ] ]']
+['R4r84xwBOFiwnSO3LWja5X']
+['cost_sum']
+----------------------------------------------------------------------------
+consumption_max :
+['A°max°mo[ A°max°t[ D°consumption_max°t°m°o° ] ]']
+['R5V6RUhYgu8fk1lTd1JfbH']
+['consumption_max']
+----------------------------------------------------------------------------
+average_cycle_time_avg :
+['A°mean°mo[ A°mean°t[ D°average_cycle_time_avg°t°m°o° ]]']
+['R7MgOWHfPwuBRiHOnNrT57l']
+['average_cycle_time_avg']
+----------------------------------------------------------------------------
+power_sum :
+['A°sum°mo[ A°sum°t[ D°power_sum°t°m°o° ] ]']
+['R7TfPiPG80rCfz98pGtetEk']
+['power_sum']
+----------------------------------------------------------------------------
+bad_cycles_max :
+['A°max°mo[ A°max°t[ D°bad_cycles_max°t°m°o° ]]']
+['R7nZyqyELJk4eJ3Lbp2PWjR']
+['bad_cycles_max']
+----------------------------------------------------------------------------
+success_rate :
+['A°sum°mo[ S°*[S°/[ R°good_cycles_sum°T°m°o° ; R°cycles_sum°T°m°o° ]] ; C°100°]', 'A°sum°mo[ A°sum°t[ D°good_cycles_sum°t°m°o° ]]', 'A°sum°mo[ A°sum°t[ D°cycles_sum°t°m°o° ]]']
+['R7u1FemtJqdMBwsG7daSEFV', 'R8LqLgWbE81e95SUOYZ4D4R', 'RB8j5Hueb5Uhq9155yIWWeE']
+['success_rate', 'good_cycles_sum', 'cycles_sum']
+----------------------------------------------------------------------------
+good_cycles_sum :
+['A°sum°mo[ A°sum°t[ D°good_cycles_sum°t°m°o° ]]']
+['R8LqLgWbE81e95SUOYZ4D4R']
+['good_cycles_sum']
+----------------------------------------------------------------------------
+bad_cycles_sum :
+['A°sum°mo[ A°sum°t[ D°bad_cycles_sum°t°m°o° ]]']
+['R8ScTyWAfxBTPLvxKYZkymU']
+['bad_cycles_sum']
+----------------------------------------------------------------------------
+cost_per_cycle :
+['A°sum°mo[ S°*[S°/[ R°consumption_sum°T°m°o° ; R°cycles_sum°T°m°o° ]; R°cost_sum°T°m°o°]]', 'A°sum°mo[ A°sum°t[ D°consumption_sum°t°m°o° ] ]', 'A°sum°mo[ A°sum°t[ D°cycles_sum°t°m°o° ]]', 'A°sum°mo[ A°sum°t[ D°cost_sum°t°m°o° ] ]']
+['R8VHLqifuXU4igLg4MsS0X9', 'R0MKtB1FGsxLy4i1gr1sV9', 'RB8j5Hueb5Uhq9155yIWWeE', 'R4r84xwBOFiwnSO3LWja5X']
+['cost_per_cycle', 'consumption_sum', 'cycles_sum', 'cost_sum']
+----------------------------------------------------------------------------
+non_operative_time :
+['S°+[ R°time_sum°T°M°idle° ; R°time_sum°T°M°offline° ]', 'A°sum°mo[ A°sum°t[ D°time_sum°t°m°o° ]]', 'A°sum°mo[ A°sum°t[ D°time_sum°t°m°o° ]]']
+['R8bvZxsWmfcsqYeT0ENX2mb', 'R8mT8WvQuTNhzof24r75lrf', 'R8mT8WvQuTNhzof24r75lrf']
+['non_operative_time', 'time_sum', 'time_sum']
+----------------------------------------------------------------------------
+consumption_avg :
+['A°mean°mo[ A°mean°t[ D°consumption_avg°t°m°o° ] ]']
+['R8kWKiERU3ii0v4c1YKyZyr']
+['consumption_avg']
+----------------------------------------------------------------------------
+time_sum :
+['A°sum°mo[ A°sum°t[ D°time_sum°t°m°o° ]]']
+['R8mT8WvQuTNhzof24r75lrf']
+['time_sum']
+----------------------------------------------------------------------------
+power_cumulative :
+['A°sum°mo[ S°/[ R°consumption_sum°T°m°o° ; R°time_sum°T°m°o° ]]', 'A°sum°mo[ A°sum°t[ D°consumption_sum°t°m°o° ] ]', 'A°sum°mo[ A°sum°t[ D°time_sum°t°m°o° ]]']
+['R94Az5RYeElC2aocjCcocEQ', 'R0MKtB1FGsxLy4i1gr1sV9', 'R8mT8WvQuTNhzof24r75lrf']
+['power_cumulative', 'consumption_sum', 'time_sum']
+----------------------------------------------------------------------------
+time_min :
+['A°min°mo[ A°min°t[ D°time_min°t°m°o° ]]']
+['R9Ao9txTV3oDaW9zOLnC7NO']
+['time_min']
+----------------------------------------------------------------------------
+cycles_max :
+['A°max°mo[ A°max°t[ D°cycles_max°t°m°o° ]]']
+['R9eS5blogIAIhBBtxE0m0XV']
+['cycles_max']
+----------------------------------------------------------------------------
+cycles_sum :
+['A°sum°mo[ A°sum°t[ D°cycles_sum°t°m°o° ]]']
+['RB8j5Hueb5Uhq9155yIWWeE']
+['cycles_sum']
