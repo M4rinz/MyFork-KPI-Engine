@@ -11,20 +11,22 @@ The KPI Calculation Engine is a Python library that provides the core logic when
 ## 📁 Repository Contents
 
 The repository contains the following files and directories
-```bash
+```
 📂 Project Root
 ├── 📂 src
 │   ├── 📂 app
 │   │   ├── 📂 kpi_engine
 │   │   │   ├── 🔤 grammar.py 
+│   │   │   ├── ⚡ dynamic_calc.py
 │   │   │   ├── 🤖 kpi_engine.py
+│   │   │   ├── ⛔ exceptions.py
 │   │   │   ├── 📩 kpi_request.py
-│   │   │   ├── 📤 kpi_response.py
+│   │   │   └── 📤 kpi_response.py
 │   │   ├── ⛁ db.py
 │   │   ├── ⊞ models.py
-│   │   ├── 🌐 main.py
+│   │   └── 🌐 main.py
 │   ├── 📂 tests
-│   │   ├── 🧪 test_kpi_engine.py
+│   │   └── 🧪 test_dynamic_calc.py
 ├── 🔄 .github
 ├── 📜 LICENSE
 ├── 📖 README.md
@@ -41,6 +43,10 @@ In order the contents are
          A directory containing the core logic of the KPI Engine.
          - **`grammar.py`**
             A Python module that defines the accepted grammar for KPI calculation.
+         - **`dynamic_calc.py`**
+            A Python module that contains the logic for dynamic KPI calculation.
+         - **`exceptions.py`**
+            A Python module that defines custom exceptions for the KPI Engine.
          - **`kpi_engine.py`**
             A Python module that contains the engine itself.
          - **`kpi_request.py`**
@@ -55,8 +61,8 @@ In order the contents are
          A Python module that contains the main entry point of the application.
    - **`tests`**
       A directory containing the unit tests for the KPI Engine.
-     - **`test_kpi_engine.py`**
-         A Python script that contains unit tests for the KPI Engine.
+     - **`test_dynamic_calc.py`**
+         A Python script that contains unit tests for the dynamic KPI calculation.
 - **`.github`**
    A directory containing the GitHub Actions workflows, including CODEOWNERS.
 - **`LICENSE`**
@@ -79,36 +85,28 @@ In order the contents are
 
 - Docker should be installed on your machine.
 - Git should be installed on your machine.
+- The [database](https://github.com/Kreative-Performative-Individuals/smart-industrial-database) and [KB](https://github.com/Kreative-Performative-Individuals/KB) containers should be running
 
 ---
 
-### 1. Clone the Repository
+### Cloning the Repository
 
-Clone this repository to your local machine using the following command:
+Clone this repository to your local machine running
 
 ```bash
 git clone https://github.com/Kreative-Performative-Individuals/KPI-Engine.git
-```
-
-This will create a new directory named `KPI-Engine` in your current working directory.
-
-### 2. Build the Docker Image
-
-Navigate to the project directory:
-
-```bash
 cd KPI-Engine
 ```
 
-Build the Docker image using the following command:
+This will create a new directory named `KPI-Engine` in your current working directory and navigate you into it.
+
+### Docker Instructions
+
+Build and run the container using the following commands
 
 ```bash
 docker build --tag kpi-engine .
 ```
-
-### 3. Run the Docker Container
-
-Run the following command to start the KPI Engine Docker container:
 
 ```bash
  docker run -d --name KPI-Engine -p 8000:8000 kpi-engine 
@@ -116,36 +114,22 @@ Run the following command to start the KPI Engine Docker container:
 
 This command will start a new Docker container named `KPI-Engine` and expose the application on port `8000`.
 
-### 4. Access the API
-
 You can now access the KPI Engine API by visiting `http://localhost:8000` in your web browser or using tools like Postman.
 
-### 5. Stopping the Container
-
-To stop the running container, use the following command:
+To stop the running container, run 
 
 ```bash
 docker stop KPI-Engine
 ```
 
-Check the status of the container using the following command:
-
-```bash
-docker ps -a
-```
-
-### 6. Removing the Container and the Image
-
-To remove the container, use the following command:
+To remove respectively the container and its image, run
 
 ```bash
 docker rm KPI-Engine
-```
-
-To remove the image, use the following command:
-
-```bash
 docker rmi kpi-engine
 ```
 
+
+
 ---
+
