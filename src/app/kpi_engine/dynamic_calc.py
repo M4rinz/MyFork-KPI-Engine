@@ -1,8 +1,8 @@
-import random
 from dotenv import load_dotenv
 import re
 import pandas as pd
 import numpy as np
+from nanoid import generate
 
 from src.app.kpi_engine.kpi_request import KPIRequest
 import src.app.kpi_engine.grammar as grammar
@@ -233,27 +233,21 @@ def R(kpi, partial_result, formulas_dict, engine, request, **kwargs):
 def D(kpi, partial_result, engine, request, **kwargs):
 
     step_split, bottom = query_DB(kpi, engine, request)
-
-    key = str(random.randint(1, 100))
-    while key in partial_result:
-        key = str(random.randint(1, 100))
-
+    key = generate(size=2)
     partial_result[key] = (step_split, bottom)
     return "°" + key
 
 
 def C(kpi, partial_result, **kwargs):
 
-    key = str(random.randint(1, 100))
-    while key in partial_result:
-        key = str(random.randint(1, 100))
-
+    key = generate(size=2)
     div = kpi.split("°")
     partial_result[key] = int(div[1])
     return "°" + key
 
 
 def finalize_mo(final_formula, partial_result, time_aggregation):
+
     # final formula is of the for '°key' where key is the key of the dictionary with the partial result
     key = final_formula.replace("°", "")
     result = getattr(np, "nan" + partial_result["agg"])(partial_result[key], axis=1)
