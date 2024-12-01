@@ -106,5 +106,5 @@ def insert_aggregated_kpi(
 def get_kpi_formula(name: str) -> dict[str, str]:
     response = requests.get("http://KB:8001/get_formulas", params={"kpi_label": name})
     if response.status_code != 200:
-        raise exceptions.KPIFormulaNotFound()
+        raise exceptions.KPIFormulaNotFoundException()
     return response.json()
