@@ -109,7 +109,7 @@ docker build --tag kpi-engine .
 ```
 
 ```bash
- docker run -d --name KPI-Engine -p 8000:8000 kpi-engine 
+ docker run --rm --name KPI-Engine -p 8008:8008 kpi-engine 
 ```
 
 This command will start a new Docker container named `KPI-Engine` and expose the application on port `8000`.
@@ -122,10 +122,9 @@ To stop the running container, run
 docker stop KPI-Engine
 ```
 
-To remove respectively the container and its image, run
+Since once stopped, the container is automatically deleted by `--rm`, we can just delete its image
 
 ```bash
-docker rm KPI-Engine
 docker rmi kpi-engine
 ```
 
