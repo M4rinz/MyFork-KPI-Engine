@@ -1,9 +1,7 @@
 # app/main.py
 import os
 
-import psycopg2.extensions
-from fastapi import FastAPI, Depends, HTTPException
-from src.app.db import get_connection
+from fastapi import FastAPI, HTTPException
 from src.app.kpi_engine.kpi_engine import KPIEngine
 from src.app.kpi_engine.kpi_request import KPIRequest
 from src.app.kpi_engine.kpi_response import KPIResponse
@@ -33,10 +31,9 @@ def health_check():
 @app.post("/kpi/")
 async def get_kpi(
     request: KPIRequest,
-    db: psycopg2.extensions.cursor = Depends(get_connection),
 ) -> KPIResponse:
     try:
-        return KPIEngine.compute(db, request)
+        return KPIEngine.compute(request)
     except ValueError as e:
         raise HTTPException(status_code=404, detail=str(e))
     except Exception:

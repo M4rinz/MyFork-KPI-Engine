@@ -27,6 +27,7 @@ class TestFunctions(unittest.TestCase):
             "agg_outer_vars": "mo",
             "agg": "mean",
         }
+        self.request = MagicMock()
         self.formulas_dict = {
             "success_rate": "A°sum°mo[ S°*[S°/[ R°good_cycles_sum°T°m°o° ; R°cycles_sum°T°m°o° ] ; C°100°]]",
             "good_cycles_sum": "A°sum°mo[ A°sum°t[ D°good_cycles_sum°t°m°o° ]]",
@@ -42,13 +43,11 @@ class TestFunctions(unittest.TestCase):
             self.formulas_dict["success_rate"],
             self.formulas_dict,
             self.partial_result,
-            self.engine,
             self.request,
         )
         self.assertRegex(result, r"°\w{2}")
 
     def test_A(self):
-
         self.partial_result["key1"] = (np.array([[1, 2], [3, 4]]), None)
         result = A("A°sum°t°key1", self.partial_result)
 
@@ -74,7 +73,6 @@ class TestFunctions(unittest.TestCase):
             "R°good_cycles_sum°T°m°o°",
             self.partial_result,
             self.formulas_dict,
-            self.engine,
             self.request,
         )
 
@@ -86,7 +84,6 @@ class TestFunctions(unittest.TestCase):
                 "R°mock°T°m°o°",
                 self.partial_result,
                 self.formulas_dict,
-                self.engine,
                 self.request,
             )
 
@@ -94,7 +91,7 @@ class TestFunctions(unittest.TestCase):
     def test_D(self, mock_query_DB):
         mock_query_DB.return_value = (np.array([[1, 2], [3, 4]]), np.array([[5, 6]]))
         random.seed(1)
-        result = D("kpi°test_query", self.partial_result, self.engine, self.request)
+        result = D("kpi°test_query", self.partial_result, self.request)
 
         self.assertTrue(result.startswith("°"))
         key = result[1:]
@@ -125,12 +122,15 @@ class TestFunctions(unittest.TestCase):
 
 
 class TestQueryDB(unittest.TestCase):
+    class MockResponse:
+        def __init__(self, data, status_code):
+            self.data = data
+            self.status_code = status_code
+
+        def json(self):
+            return self.data
 
     def setUp(self):
-        self.connection = MagicMock()
-        self.cursor = MagicMock()
-        self.connection.cursor.return_value = self.cursor
-
         self.request = MagicMock()
         self.request.machines = ["machine_1", "machine_2"]
         self.request.operations = ["operation_1", "operation_2"]
@@ -138,72 +138,61 @@ class TestQueryDB(unittest.TestCase):
         self.request.end_date = "2024-01-31"
         self.request.step = 1
 
-        self.cursor.fetchall.return_value = [
-            (1, "operation_1", "2024-01-01", 100),
-            (2, "operation_2", "2024-01-01", 200),
-            (1, "operation_1", "2024-01-02", 150),
-            (2, "operation_2", "2024-01-02", 250),
-        ]
+        self.requests_return_value = self.MockResponse(
+            data={
+                "data": [
+                    (1, "operation_1", "2024-01-01", 100),
+                    (2, "operation_2", "2024-01-01", 200),
+                    (1, "operation_1", "2024-01-02", 150),
+                    (2, "operation_2", "2024-01-02", 250),
+                ]
+            },
+            status_code=200,
+        )
 
-    def test_valid_kpi_and_query(self):
-
+    @patch("src.app.kpi_engine.dynamic_calc.requests.get")
+    def test_valid_kpi_and_query(self, mock_get):
         kpi = "D°consumption_sum"
-        step_split, bottom = query_DB(kpi, self.connection, self.request)
 
-        self.connection.cursor.assert_called_once()
-
-        raw_query_statement = self.cursor.execute.call_args[0][0]
-        self.assertIn("SELECT asset_id, operation, time, sum", raw_query_statement)
-        self.assertIn("WHERE kpi = 'consumption'", raw_query_statement)
+        mock_get.return_value = self.requests_return_value
+        step_split, bottom = query_DB(kpi, self.request)
 
         self.assertEqual(step_split.shape, (2, 1, 2))
         self.assertIsNone(bottom)
 
     def test_invalid_kpi_reference(self):
-
         kpi = "D°consumptionsum°mo"
         with self.assertRaises(ValueError):
-            query_DB(kpi, self.connection, self.request)
+            query_DB(kpi, self.request)
 
     def test_invalid_kpi_format(self):
-
         kpi = "D°consumption"
         with self.assertRaises(ValueError):
-            query_DB(kpi, self.connection, self.request)
+            query_DB(kpi, self.request)
 
-    def test_empty_query_result(self):
-
-        self.cursor.fetchall.return_value = []
+    @patch("src.app.kpi_engine.dynamic_calc.requests.get")
+    def test_empty_query_result(self, mock_get):
+        mock_get.requests_return_value = self.MockResponse(
+            data={"data": []}, status_code=200
+        )
         kpi = "D°consumption_sum"
         with self.assertRaises(EmptyQueryException):
-            query_DB(kpi, self.connection, self.request)
+            query_DB(kpi, self.request)
 
-    def test_step_split_with_remainder(self):
-
+    @patch("src.app.kpi_engine.dynamic_calc.requests.get")
+    def test_step_split_with_remainder(self, mock_get):
         self.request.step = 3
         kpi = "D°consumption_sum"
-        step_split, bottom = query_DB(kpi, self.connection, self.request)
+        mock_get.return_value = self.requests_return_value
+        step_split, bottom = query_DB(kpi, self.request)
 
         self.assertEqual(step_split.shape, (0, 3, 2))
         self.assertEqual(bottom.shape, (1, 2, 2))
 
     def test_invalid_kpi_with_no_match(self):
-
         kpi = "D°abc"
         with self.assertRaises(ValueError):
-            query_DB(kpi, self.connection, self.request)
-
-    def test_sql_query_structure(self):
-
-        kpi = "D°consumption_mean"
-        query_DB(kpi, self.connection, self.request)
-
-        raw_query_statement = self.cursor.execute.call_args[0][0]
-        for machine, operation in zip(self.request.machines, self.request.operations):
-            self.assertIn(
-                f"(name = '{machine}' AND operation = '{operation}')",
-                raw_query_statement,
-            )
+            query_DB(kpi, self.request)
 
 
 if __name__ == "__main__":

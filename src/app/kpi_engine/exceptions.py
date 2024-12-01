@@ -20,3 +20,8 @@ class InvalidBinaryOperatorException(Exception):
 class InvalidKPINameException(Exception):
     def __init__(self, message="Invalid KPI name"):
         super().__init__(message)
+
+
+class KPIFormulaNotFoundException(Exception):
+    def __init__(self, message="KPI formula not found"):
+        super().__init__(message)
