@@ -1,11 +1,11 @@
 from typing import Any
 
-import psycopg2.extensions
 from dotenv import load_dotenv
 import re
 import pandas as pd
 import numpy as np
 from nanoid import generate
+import requests
 
 from src.app.kpi_engine.kpi_request import KPIRequest
 import src.app.kpi_engine.grammar as grammar
@@ -18,7 +18,6 @@ def dynamic_kpi(
     kpi: str,
     formulas_dict: dict[str, str],
     partial_result: dict[str, Any],
-    connection: psycopg2.extensions.connection,
     request: KPIRequest,
     **kwargs,
 ):
@@ -40,23 +39,17 @@ def dynamic_kpi(
             left = re.sub(r"[\[\]]", "", left)
             right = re.sub(r"[\[\]]", "", right)
             output.append(
-                dynamic_kpi(
-                    left, formulas_dict, partial_result, connection, request, **kwargs
-                )
+                dynamic_kpi(left, formulas_dict, partial_result, request, **kwargs)
             )
             output.append(
-                dynamic_kpi(
-                    right, formulas_dict, partial_result, connection, request, **kwargs
-                )
+                dynamic_kpi(right, formulas_dict, partial_result, request, **kwargs)
             )
 
         # case in which we do not match S°
         else:
             part = re.sub(r"[\[\]]", "", inner_content)
             output.append(
-                dynamic_kpi(
-                    part, formulas_dict, partial_result, connection, request, **kwargs
-                )
+                dynamic_kpi(part, formulas_dict, partial_result, request, **kwargs)
             )
 
         # substitute the inner content with the calculated value with a comma to avoid infinite recursion
@@ -64,12 +57,7 @@ def dynamic_kpi(
             inner_content, str(",".join(map(str, output))), 1
         )
         return dynamic_kpi(
-            remaining_string,
-            formulas_dict,
-            partial_result,
-            connection,
-            request,
-            **kwargs,
+            remaining_string, formulas_dict, partial_result, request, **kwargs
         )
 
     # else we have to discover if it is a D°, A°, S°, R° or C°
@@ -86,15 +74,12 @@ def dynamic_kpi(
         kpi=kpi,
         partial_result=partial_result,
         formulas_dict=formulas_dict,
-        connection=connection,
         request=request,
         **kwargs,
     )
 
 
-def query_DB(
-    kpi: str, connection: psycopg2.extensions.connection, request: KPIRequest, **kwargs
-) -> tuple[np.ndarray, np.ndarray]:
+def query_DB(kpi: str, request: KPIRequest, **kwargs) -> tuple[np.ndarray, np.ndarray]:
 
     kpi_split = kpi.split("°")[1]
 
@@ -121,11 +106,13 @@ def query_DB(
     AND time BETWEEN '{request.start_date}' AND '{request.end_date}'
     """
 
-    cursor = connection.cursor()
-    cursor.execute(raw_query_statement)
+    response = requests.get(
+        "http://DB:8002/query", params={"statement": raw_query_statement}
+    )
+    data = response.json()["data"]
 
     dataframe = pd.DataFrame(
-        cursor.fetchall(),
+        data,
         columns=["asset_id", "operation", "time", f"{after_last_underscore}"],
     )
 
@@ -222,7 +209,6 @@ def R(
     kpi: str,
     partial_result: dict[str, Any],
     formulas_dict: dict[str, str],
-    connection: psycopg2.extensions.connection,
     request: KPIRequest,
     **kwargs,
 ):
@@ -236,7 +222,6 @@ def R(
                 formulas_dict[kpi_involved],
                 formulas_dict,
                 partial_result,
-                connection,
                 request,
                 **kwargs,
             )
@@ -250,12 +235,11 @@ def R(
 def D(
     kpi: str,
     partial_result: dict[str, Any],
-    connection: psycopg2.extensions.connection,
     request: KPIRequest,
     **kwargs,
 ):
 
-    step_split, bottom = query_DB(kpi, connection, request)
+    step_split, bottom = query_DB(kpi, request)
     key = generate(size=2)
     partial_result[key] = (step_split, bottom)
     return "°" + key
