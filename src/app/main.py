@@ -1,6 +1,7 @@
 # app/main.py
 import os
 
+import psycopg2.extensions
 from fastapi import FastAPI, Depends, HTTPException
 from src.app.db import get_connection
 from src.app.kpi_engine.kpi_engine import KPIEngine
@@ -32,7 +33,7 @@ def health_check():
 @app.post("/kpi/")
 async def get_kpi(
     request: KPIRequest,
-    db=Depends(get_connection),
+    db: psycopg2.extensions.cursor = Depends(get_connection),
 ) -> KPIResponse:
     try:
         return KPIEngine.compute(db, request)

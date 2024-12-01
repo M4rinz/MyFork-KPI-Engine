@@ -1,16 +1,22 @@
 """KPI Calculation Engine."""
 
+import numpy as np
+import psycopg2.extensions
+
 from src.app.kpi_engine.kpi_request import KPIRequest
 from src.app.kpi_engine.kpi_response import KPIResponse
 import src.app.kpi_engine.dynamic_calc as dyn
 import src.app.kpi_engine.exceptions as exceptions
 
 import KB.kb_interface as kbi
+from typing import Any
 
 
 class KPIEngine:
     @staticmethod
-    def compute(connection, request: KPIRequest) -> KPIResponse:
+    def compute(
+        connection: psycopg2.extensions.connection, request: KPIRequest
+    ) -> KPIResponse:
 
         # still to define a way to start the KB on the application start and not on the request
         kbi.start()
@@ -64,7 +70,7 @@ class KPIEngine:
         return KPIResponse(message=message, value=result)
 
 
-def preprocessing(kpi_name, formulas_dict):
+def preprocessing(kpi_name: str, formulas_dict: dict[str, Any]) -> dict[str, Any]:
 
     partial_result = {}
     # get the actual formula of the kpi
@@ -78,7 +84,12 @@ def preprocessing(kpi_name, formulas_dict):
     return partial_result
 
 
-def insert_aggregated_kpi(connection, request: KPIRequest, kpi_list: list, value):
+def insert_aggregated_kpi(
+    connection: psycopg2.extensions.connection,
+    request: KPIRequest,
+    kpi_list: list,
+    value: np.float64,
+):
     cursor = connection.cursor()
 
     insert_query = """
@@ -105,7 +116,7 @@ def insert_aggregated_kpi(connection, request: KPIRequest, kpi_list: list, value
     connection.close()
 
 
-def get_kpi_formula(name: str):
+def get_kpi_formula(name: str) -> dict[str, str]:
     formulas = kbi.get_formulas(name)
     if formulas is None:
         raise exceptions.InvalidKPINameException()

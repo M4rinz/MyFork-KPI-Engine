@@ -3,8 +3,22 @@ from unittest.mock import MagicMock, patch
 
 import numpy as np
 import random
-from src.app.kpi_engine.dynamic_calc import A, S, R, D, C, finalize_mo, keys_involved
-from src.app.kpi_engine.exceptions import InvalidFormulaReferenceException
+from src.app.kpi_engine.dynamic_calc import (
+    A,
+    S,
+    R,
+    D,
+    C,
+    finalize_mo,
+    keys_involved,
+    query_DB,
+    dynamic_kpi,
+)
+from src.app.kpi_engine.exceptions import (
+    InvalidFormulaReferenceException,
+    EmptyQueryException,
+    InvalidBinaryOperatorException,
+)
 
 
 class TestFunctions(unittest.TestCase):
@@ -20,6 +34,18 @@ class TestFunctions(unittest.TestCase):
         }
         self.engine = MagicMock()
         self.request = MagicMock()
+
+    @patch("src.app.kpi_engine.dynamic_calc.query_DB")
+    def test_dynamic_kpi(self, mock_query_DB):
+        mock_query_DB.return_value = (np.array([[1, 2], [3, 4]]), None)
+        result = dynamic_kpi(
+            self.formulas_dict["success_rate"],
+            self.formulas_dict,
+            self.partial_result,
+            self.engine,
+            self.request,
+        )
+        self.assertRegex(result, r"°\w{2}")
 
     def test_A(self):
 
@@ -37,6 +63,9 @@ class TestFunctions(unittest.TestCase):
         self.assertEqual(result, "°key1")
         np.testing.assert_array_equal(self.partial_result["key1"], [5, 7, 9])
 
+        with self.assertRaises(InvalidBinaryOperatorException):
+            S("S°%°key1,°key2", self.partial_result)
+
     @patch("src.app.kpi_engine.dynamic_calc.query_DB")
     def test_R(self, mock_query_DB):
         mock_query_DB.return_value = (np.zeros((2, 2)), None)
@@ -48,8 +77,9 @@ class TestFunctions(unittest.TestCase):
             self.engine,
             self.request,
         )
-        self.assertLessEqual(int(result[1:]), 100)
-        self.assertGreaterEqual(int(result[1:]), 1)
+
+        self.assertTrue(result.startswith("°"))
+        self.assertTrue(result[1:] in self.partial_result)
 
         with self.assertRaises(InvalidFormulaReferenceException):
             R(
@@ -75,7 +105,6 @@ class TestFunctions(unittest.TestCase):
         random.seed(1)
         result = C("C°100°", self.partial_result)
         self.assertTrue(result.startswith("°"))
-        self.assertTrue(1 <= int(result[1:]) <= 100)
         key = result[1:]
         self.assertIn(key, self.partial_result)
         self.assertEqual(self.partial_result[key], 100)
@@ -93,6 +122,88 @@ class TestFunctions(unittest.TestCase):
         kpi = "A°sum°t°15"
         result = keys_involved(kpi, {"15": "val"})
         self.assertEqual(result, ["15"])
+
+
+class TestQueryDB(unittest.TestCase):
+
+    def setUp(self):
+        self.connection = MagicMock()
+        self.cursor = MagicMock()
+        self.connection.cursor.return_value = self.cursor
+
+        self.request = MagicMock()
+        self.request.machines = ["machine_1", "machine_2"]
+        self.request.operations = ["operation_1", "operation_2"]
+        self.request.start_date = "2024-01-01"
+        self.request.end_date = "2024-01-31"
+        self.request.step = 1
+
+        self.cursor.fetchall.return_value = [
+            (1, "operation_1", "2024-01-01", 100),
+            (2, "operation_2", "2024-01-01", 200),
+            (1, "operation_1", "2024-01-02", 150),
+            (2, "operation_2", "2024-01-02", 250),
+        ]
+
+    def test_valid_kpi_and_query(self):
+
+        kpi = "D°consumption_sum"
+        step_split, bottom = query_DB(kpi, self.connection, self.request)
+
+        self.connection.cursor.assert_called_once()
+
+        raw_query_statement = self.cursor.execute.call_args[0][0]
+        self.assertIn("SELECT asset_id, operation, time, sum", raw_query_statement)
+        self.assertIn("WHERE kpi = 'consumption'", raw_query_statement)
+
+        self.assertEqual(step_split.shape, (2, 1, 2))
+        self.assertIsNone(bottom)
+
+    def test_invalid_kpi_reference(self):
+
+        kpi = "D°consumptionsum°mo"
+        with self.assertRaises(ValueError):
+            query_DB(kpi, self.connection, self.request)
+
+    def test_invalid_kpi_format(self):
+
+        kpi = "D°consumption"
+        with self.assertRaises(ValueError):
+            query_DB(kpi, self.connection, self.request)
+
+    def test_empty_query_result(self):
+
+        self.cursor.fetchall.return_value = []
+        kpi = "D°consumption_sum"
+        with self.assertRaises(EmptyQueryException):
+            query_DB(kpi, self.connection, self.request)
+
+    def test_step_split_with_remainder(self):
+
+        self.request.step = 3
+        kpi = "D°consumption_sum"
+        step_split, bottom = query_DB(kpi, self.connection, self.request)
+
+        self.assertEqual(step_split.shape, (0, 3, 2))
+        self.assertEqual(bottom.shape, (1, 2, 2))
+
+    def test_invalid_kpi_with_no_match(self):
+
+        kpi = "D°abc"
+        with self.assertRaises(ValueError):
+            query_DB(kpi, self.connection, self.request)
+
+    def test_sql_query_structure(self):
+
+        kpi = "D°consumption_mean"
+        query_DB(kpi, self.connection, self.request)
+
+        raw_query_statement = self.cursor.execute.call_args[0][0]
+        for machine, operation in zip(self.request.machines, self.request.operations):
+            self.assertIn(
+                f"(name = '{machine}' AND operation = '{operation}')",
+                raw_query_statement,
+            )
 
 
 if __name__ == "__main__":

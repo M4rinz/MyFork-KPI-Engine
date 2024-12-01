@@ -1,3 +1,6 @@
+from typing import Any
+
+import psycopg2.extensions
 from dotenv import load_dotenv
 import re
 import pandas as pd
@@ -12,7 +15,12 @@ load_dotenv()
 
 
 def dynamic_kpi(
-    kpi, formulas_dict, partial_result: dict, connection, request: KPIRequest, **kwargs
+    kpi: str,
+    formulas_dict: dict[str, str],
+    partial_result: dict[str, Any],
+    connection: psycopg2.extensions.connection,
+    request: KPIRequest,
+    **kwargs,
 ):
 
     # find the body of the innermost wrapping of the formula with []
@@ -78,13 +86,15 @@ def dynamic_kpi(
         kpi=kpi,
         partial_result=partial_result,
         formulas_dict=formulas_dict,
-        engine=connection,
+        connection=connection,
         request=request,
         **kwargs,
     )
 
 
-def query_DB(kpi, connection, request: KPIRequest, **kwargs):
+def query_DB(
+    kpi: str, connection: psycopg2.extensions.connection, request: KPIRequest, **kwargs
+) -> tuple[np.ndarray, np.ndarray]:
 
     kpi_split = kpi.split("°")[1]
 
@@ -156,7 +166,7 @@ def query_DB(kpi, connection, request: KPIRequest, **kwargs):
     return step_split, bottom
 
 
-def A(kpi, partial_result, **kwargs):
+def A(kpi: str, partial_result: dict[str, Any], **kwargs) -> str:
 
     # keys_inv is the key of the dictionary with the partial result associated with the kpi
     keys_inv = keys_involved(kpi, partial_result)[0]
@@ -193,7 +203,7 @@ def A(kpi, partial_result, **kwargs):
 
 
 # pairwise operation involving two elements
-def S(kpi, partial_result, **kwargs):
+def S(kpi: str, partial_result: dict[str, Any], **kwargs):
 
     left, right = keys_involved(kpi, partial_result)
 
@@ -208,7 +218,14 @@ def S(kpi, partial_result, **kwargs):
     )
 
 
-def R(kpi, partial_result, formulas_dict, engine, request, **kwargs):
+def R(
+    kpi: str,
+    partial_result: dict[str, Any],
+    formulas_dict: dict[str, str],
+    connection: psycopg2.extensions.connection,
+    request: KPIRequest,
+    **kwargs,
+):
 
     kpi_split = kpi.split("°")
     kpi_involved = kpi_split[1]
@@ -219,7 +236,7 @@ def R(kpi, partial_result, formulas_dict, engine, request, **kwargs):
                 formulas_dict[kpi_involved],
                 formulas_dict,
                 partial_result,
-                engine,
+                connection,
                 request,
                 **kwargs,
             )
@@ -230,15 +247,21 @@ def R(kpi, partial_result, formulas_dict, engine, request, **kwargs):
     )
 
 
-def D(kpi, partial_result, engine, request, **kwargs):
+def D(
+    kpi: str,
+    partial_result: dict[str, Any],
+    connection: psycopg2.extensions.connection,
+    request: KPIRequest,
+    **kwargs,
+):
 
-    step_split, bottom = query_DB(kpi, engine, request)
+    step_split, bottom = query_DB(kpi, connection, request)
     key = generate(size=2)
     partial_result[key] = (step_split, bottom)
     return "°" + key
 
 
-def C(kpi, partial_result, **kwargs):
+def C(kpi: str, partial_result: dict[str, Any], **kwargs):
 
     key = generate(size=2)
     div = kpi.split("°")
@@ -246,7 +269,9 @@ def C(kpi, partial_result, **kwargs):
     return "°" + key
 
 
-def finalize_mo(final_formula, partial_result, time_aggregation):
+def finalize_mo(
+    final_formula: str, partial_result: dict[str, Any], time_aggregation: str
+):
 
     # final formula is of the for '°key' where key is the key of the dictionary with the partial result
     key = final_formula.replace("°", "")
@@ -254,7 +279,7 @@ def finalize_mo(final_formula, partial_result, time_aggregation):
     return getattr(np, "nan" + time_aggregation)(result)
 
 
-def keys_involved(kpi, partial_result):
+def keys_involved(kpi: str, partial_result: dict[str, Any]):
     sep = kpi.split("°")
     if sep[0] == "S":
         sep[2] = sep[2].replace(",", "")
