@@ -42,8 +42,6 @@ RUN chown -R KPIEngineAdmin:appgroup /kpi_engine
 # Copy local .env file for DB connection
 COPY .env /kpi_engine/
 
-COPY KB /kpi_engine/KB
-
 # Expose port 8008
 EXPOSE 8008
 

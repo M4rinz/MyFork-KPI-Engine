@@ -1,0 +1,48 @@
+services:
+  kpi-engine:
+    build:
+      context: .
+    container_name: KPI-Engine
+    ports:
+      - "8008:8008"
+    networks:
+      - kreative-performative-individuals-network
+    depends_on:
+      - kb-service
+      - kpi-database
+    environment:
+      DB_HOST: "${DB_HOST}"
+      DB_USER: "${DB_USER}"
+      DB_PASSWORD: "${DB_PASSWORD}"
+      DB_NAME: "${DB_NAME}"
+
+  kb-service:
+    build:
+      context: ../KB
+    container_name: KB
+    ports:
+      - "8001:8001"
+    networks:
+      - kreative-performative-individuals-network
+
+  kpi-database:
+    build:
+      context: ../smart-industrial-database
+    container_name: DB
+    environment:
+      POSTGRES_USER: ${DB_USER}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+      POSTGRES_DB: ${DB_NAME}
+    networks:
+      - kreative-performative-individuals-network
+    ports:
+      - "5432:5432"
+    volumes:
+      - ../smart-industrial-database/data:/var/lib/postgresql/data
+
+networks:
+  kreative-performative-individuals-network:
+    driver: bridge
+
+volumes:
+  kpi-db-data:
