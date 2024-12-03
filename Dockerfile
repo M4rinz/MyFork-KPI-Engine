@@ -39,9 +39,6 @@ COPY src/ /kpi_engine/src
 # Change ownership of the application code
 RUN chown -R KPIEngineAdmin:appgroup /kpi_engine
 
-# Copy local .env file for DB connection
-COPY .env /kpi_engine/
-
 # Expose port 8008
 EXPOSE 8008
 
