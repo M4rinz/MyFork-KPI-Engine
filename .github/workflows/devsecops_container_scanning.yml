@@ -1,11 +1,6 @@
 name: Security Scan Pipeline (Secret Scanning, SCA, SAST, IaC, Container Scanning)
 
 on:
-  push:
-    branches:
-      - main
-      - dev
-  pull_request:
   schedule:
     - cron: '0 0 * * *'  # Runs every day at midnight UTC
 
@@ -225,7 +220,7 @@ jobs:
           # For now it is 0, will be promoted to 1
           exit-code: '0'  # With exit-code:1 it fails if vulnerabilities are found
           # For the SARIF, only critical. Otherwise the GitHub Security tab will be flooded
-          severity: 'CRITICAL,HIGH'
+          severity: 'CRITICAL'
           output: 'trivy-container_sarif-report.sarif'
           # On a subsequent call to the action we know Trivy is already installed so can skip this
           skip-setup-trivy: true
