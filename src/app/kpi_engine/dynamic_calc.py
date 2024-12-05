@@ -91,26 +91,7 @@ def query_DB(kpi: str, request: KPIRequest, **kwargs) -> tuple[np.ndarray, np.nd
         raise ValueError(f"DB query - invalid DB reference: {kpi_split}")
 
     raw_query_statement= build_query(request,after_last_underscore,before_last_underscore)
-    #passargli la chiamata a funzione che fa build(after_last_underscore,before_last_undescore,request,request)
-
-    '''
-    raw_query_statement = f"""
-    SELECT asset_id, operation, time, {after_last_underscore} 
-    FROM real_time_data 
-    WHERE kpi = '{before_last_underscore}'
-    AND ( 
-    """
-
-    for m, o in zip(request.machines, request.operations):
-        raw_query_statement += f"(name = '{m}' AND operation = '{o}') OR "
-    raw_query_statement = raw_query_statement[:-4]
-
-    raw_query_statement += f"""
-    )
-    AND time BETWEEN '{request.start_date}' AND '{request.end_date}'
-    """
-    '''
-
+    
     response = requests.get(
         "http://smart-database-container:8002/query",
         params={"statement": raw_query_statement},

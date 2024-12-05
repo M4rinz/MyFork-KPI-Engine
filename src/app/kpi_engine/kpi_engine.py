@@ -154,9 +154,6 @@ def get_closest_instances(name:str)->dict:
 
 def check_machine_operation(machines,operations):
 
-    #controllo se una è una stringa e basta e l'altra è una lista
-    #in questo caso faccio chiamare la knowledge base e poi mi faccio restituire la lista
-    #controllare se sono della stessa lunghezza e in caso fare padding
     if isinstance(machines,str):
         #call the knowledge base
         try:
