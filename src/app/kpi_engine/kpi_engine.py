@@ -19,15 +19,28 @@ class KPIEngine:
         machines = request.machines
         operations = request.operations
 
+        #fare funzione controllo della stringa
         # validate machines and operations
-        if len(machines) != len(operations):
-            return KPIResponse(
-                message="Invalid number of machines and operations", value=-1
-            )
-
+        #vado ad aggiungere un ulterione controllo
+        
+        request.machines,request.operations=check_machine_operation(machines,operations)
+        #if len(machines) != len(operations):
+            #return KPIResponse(
+                #message="Invalid number of machines and operations", value=-1
+            #)
         # get the formula from the KB
         try:
-            formulas = get_kpi_formula(name)
+            formulas=get_kpi_formula(name)
+
+            if formulas==None:
+
+                formulas = get_closest_kpi_formula(name)
+                formulas=formulas['formulas']
+                name=next(iter(formulas))
+                
+            
+            #closest_formula= get_closest_kpi_formula(name)
+            #devo prendere formulas
         except Exception as e:
             return KPIResponse(message=repr(e), value=-1)
 
@@ -40,6 +53,7 @@ class KPIEngine:
 
         try:
             # computes the final matrix that has to be aggregated for mo and time_aggregation
+            
             result = dyn.dynamic_kpi(formulas[name], formulas, partial_result, request)
         except Exception as e:
             return KPIResponse(message=repr(e), value=-1)
@@ -97,6 +111,8 @@ def insert_aggregated_kpi(
         request.step,
     )
 
+    print(data)
+
     return requests.post(
         "http://smart-database-container:8002/insert",
         json={"statement": insert_query, "data": data},
@@ -113,3 +129,75 @@ def get_kpi_formula(name: str) -> dict[str, str]:
     if response.status_code != 200:
         raise exceptions.KPIFormulaNotFoundException()
     return response.json()
+
+
+def get_closest_kpi_formula(name:str)->dict:
+
+    response = requests.get(
+        "http://kb-service-container:8001/kpi-formulas", params={"kpi": name}, timeout=5
+    )
+    if response.status_code != 200:
+        raise exceptions.KPIFormulaNotFoundException()
+    return response.json()
+
+def get_closest_instances(name:str)->dict:
+
+    response = requests.get(
+        "http://kb-service-container:8001/class-instances", params={"owl_class_label": name}, timeout=5
+    )
+    if response.status_code != 200:
+        raise exceptions.KPIFormulaNotFoundException()
+    return response.json()
+
+
+#checking machine and string
+
+def check_machine_operation(machines,operations):
+
+    #controllo se una è una stringa e basta e l'altra è una lista
+    #in questo caso faccio chiamare la knowledge base e poi mi faccio restituire la lista
+    #controllare se sono della stessa lunghezza e in caso fare padding
+    if isinstance(machines,str):
+        #call the knowledge base
+        try:
+            macchine=get_closest_instances(machines)
+            macchine=macchine['instances']
+        except Exception as e:
+            return KPIResponse(message=repr(e), value=-1)
+
+        if len(macchine)!=0 and (len(operations)!=0):
+
+            if len(macchine)==len(operations):
+                return macchine,operations
+            elif len(macchine)<(len(operations)!=0):
+                return KPIResponse(
+                message="Invalid number of machines and operations", value=-1
+            )
+            elif len(macchine)>(len(operations)!=0):
+                #facciamo padding con independent
+                i=len(operations)
+                for i in range(len(operations),len(macchine)):
+                    operations.append('independent')
+                if len(macchine)==len(operations):
+                    return macchine,operations
+
+                else:
+                    return KPIResponse(
+                message="Invalid number of machines and operations", value=-1
+            )
+
+
+        else:
+            return macchine,operations
+
+
+    elif len(machines)!=0 and len(operations)!=0:
+        #check if they are of the same lenght
+        if len(machines)!=len(operations):
+            return KPIResponse(
+                message="Invalid number of machines and operations", value=-1
+            )
+        else:
+            return machines,operations
+
+    return machines, operations

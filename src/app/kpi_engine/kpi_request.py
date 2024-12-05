@@ -1,4 +1,5 @@
 from datetime import datetime
+from typing import Union
 from pydantic import BaseModel, validator
 from src.app.kpi_engine import grammar
 
@@ -14,7 +15,7 @@ class KPIRequest(BaseModel):
     """
 
     name: str
-    machines: list
+    machines: Union[list,str]
     operations: list
     time_aggregation: str
     start_date: datetime
@@ -29,8 +30,8 @@ class KPIRequest(BaseModel):
 
     @validator("machines")
     def validate_machines(cls, value):
-        if not isinstance(value, list):
-            raise ValueError("Machine name must be a list.")
+        if not isinstance(value, (list, str)):
+            raise ValueError("Machine name must be a list or a string.")
         return value
 
     @validator("operations")

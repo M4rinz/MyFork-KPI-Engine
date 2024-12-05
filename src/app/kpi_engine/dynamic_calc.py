@@ -90,6 +90,10 @@ def query_DB(kpi: str, request: KPIRequest, **kwargs) -> tuple[np.ndarray, np.nd
     else:
         raise ValueError(f"DB query - invalid DB reference: {kpi_split}")
 
+    raw_query_statement= build_query(request,after_last_underscore,before_last_underscore)
+    #passargli la chiamata a funzione che fa build(after_last_underscore,before_last_undescore,request,request)
+
+    '''
     raw_query_statement = f"""
     SELECT asset_id, operation, time, {after_last_underscore} 
     FROM real_time_data 
@@ -105,6 +109,7 @@ def query_DB(kpi: str, request: KPIRequest, **kwargs) -> tuple[np.ndarray, np.nd
     )
     AND time BETWEEN '{request.start_date}' AND '{request.end_date}'
     """
+    '''
 
     response = requests.get(
         "http://smart-database-container:8002/query",
@@ -198,9 +203,13 @@ def S(kpi: str, partial_result: dict[str, Any], **kwargs):
 
     op = next((op for op in grammar.operators if op in kpi), None)
     if op:
+
+        if (op=='/' and np.any(partial_result[right] == 0)):
+            raise exceptions.DivisionByZeroException()
         # Perform the operation and update the partial result
         partial_result[left] = eval(f"partial_result[left] {op} partial_result[right]")
         return f"°{left}"
+        
 
     raise exceptions.InvalidBinaryOperatorException(
         f"Binary operator not found in the list of operations: {grammar.operators}"
@@ -271,3 +280,77 @@ def keys_involved(kpi: str, partial_result: dict[str, Any]):
         sep[2] = sep[2].replace(",", "")
     result = [i for i in sep if i in partial_result]
     return result
+
+
+#build query statement
+def build_query(request: KPIRequest, after_last_underscore, before_last_underscore):
+    
+
+
+    if len(request.machines)!=0 and len(request.operations)!=0:
+        raw_query_statement = f"""
+        SELECT asset_id, operation, time, {after_last_underscore} 
+        FROM real_time_data 
+        WHERE kpi = '{before_last_underscore}'
+        AND ( 
+        """
+
+        for m, o in zip(request.machines, request.operations):
+            raw_query_statement += f"(name = '{m}' AND operation = '{o}') OR "
+        raw_query_statement = raw_query_statement[:-4]
+
+        raw_query_statement += f"""
+        )
+        AND time BETWEEN '{request.start_date}' AND '{request.end_date}'
+        """
+    elif len(request.machines)!=0 and len(request.operations)==0 :
+
+        
+
+        raw_query_statement = f"""
+        SELECT asset_id, operation, time, {after_last_underscore} 
+        FROM real_time_data 
+        WHERE kpi = '{before_last_underscore}'
+        AND ( 
+        """
+
+        for m in request.machines:
+            raw_query_statement += f"(name = '{m}') OR "
+        raw_query_statement = raw_query_statement[:-4]
+
+        raw_query_statement += f"""
+        )
+        AND time BETWEEN '{request.start_date}' AND '{request.end_date}'
+        """
+    
+    elif len(request.machines)==0 and len(request.operations)!=0:
+
+        raw_query_statement = f"""
+        SELECT asset_id, operation, time, {after_last_underscore} 
+        FROM real_time_data
+        WHERE kpi = '{before_last_underscore}'
+        AND ( 
+        """
+
+        for o in request.operations:
+            raw_query_statement += f"(operation = '{o}') OR "
+        raw_query_statement = raw_query_statement[:-4]
+
+        raw_query_statement += f"""
+        )
+        AND time BETWEEN '{request.start_date}' AND '{request.end_date}'
+        """
+
+    elif len(request.machines)==0 and len(request.operations)==0:
+
+        raw_query_statement = f"""
+        SELECT asset_id, operation, time, {after_last_underscore} 
+        FROM real_time_data
+        WHERE kpi = '{before_last_underscore}'
+        AND time BETWEEN '{request.start_date}' AND '{request.end_date}'
+        """
+
+
+    return raw_query_statement
+
+
