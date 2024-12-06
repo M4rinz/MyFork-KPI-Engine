@@ -1,3 +1,6 @@
+import json
+from datetime import datetime
+
 from pydantic import BaseModel, validator
 
 
@@ -16,3 +19,16 @@ class KPIResponse(BaseModel):
         if not isinstance(value, (int, float)):
             raise ValueError("Value must be a float or int.")
         return value
+
+
+class RealTimeKPIResponse(BaseModel):
+    label: datetime
+    value: float
+
+    def to_json(self):
+        return json.dumps(self, default=lambda o: o.__dict__, indent=4)
+
+
+class RealTimeResponse(BaseModel):
+    message: str
+    status: int
