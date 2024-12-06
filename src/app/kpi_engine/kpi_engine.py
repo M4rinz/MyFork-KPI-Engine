@@ -1,17 +1,155 @@
 """KPI Calculation Engine."""
 
+import asyncio
+import json
+
 import numpy as np
 import requests
-
-from src.app.kpi_engine.kpi_request import KPIRequest
-from src.app.kpi_engine.kpi_response import KPIResponse
+import websockets
+from src.app.kpi_engine.kpi_request import (
+    KPIRequest,
+    RealTimeRequest,
+    RealTimeKPI,
+    KPIStreamingRequest,
+)
+from src.app.kpi_engine.kpi_response import KPIResponse, RealTimeKPIResponse
 import src.app.kpi_engine.dynamic_calc as dyn
 import src.app.kpi_engine.exceptions as exceptions
 
 from typing import Any
 
+from aiokafka import AIOKafkaConsumer
+
 
 class KPIEngine:
+    instance = None
+
+    def __init__(self, topic, port, servers) -> None:
+        self._topic = topic
+        self._port = port
+        self._servers = servers
+        self.consumer = KPIEngine.create_consumer(topic, port, servers)
+        self.websocket = None
+        # self.websocket = KPIEngine.create_websocket()
+        KPIEngine.instance = self
+        print(
+            "KPI Engine initialized: created consumer. Topic: ",
+            topic,
+            " Port: ",
+            port,
+            " Servers: ",
+            servers,
+        )
+
+    @staticmethod
+    def create_consumer(topic, port, servers):
+        def decode_message(message):
+            return [
+                RealTimeKPI.from_json(json.loads(item))
+                for item in json.loads(message.decode("utf-8"))
+            ]
+
+        return AIOKafkaConsumer(
+            topic,
+            bootstrap_servers=f"{servers}:{port}",
+            value_deserializer=decode_message,
+            auto_offset_reset="earliest",
+        )
+
+    async def start_consumer(self):
+        try:
+            await self.consumer.start()
+            print("Consumer started successfully")
+        except Exception as e:
+            print(f"Error starting consumer: {e}")
+            return {"Error": f"Error starting consumer: {str(e)}"}
+
+    @staticmethod
+    def connect_to_publisher(kpi_streaming_request: KPIStreamingRequest):
+        try:
+            print("Streaming request: ", kpi_streaming_request.to_json())
+            response = requests.post(
+                "http://data-preprocessing-container:8003/real-time/start",
+                data=kpi_streaming_request.to_json(),
+            )
+            response.raise_for_status()  # Raise error for non-2xx responses
+            return response.json()
+        except Exception as e:
+            print(f"Error connecting to producer: {e}")
+            return {"Error": "Could not connect to producer"}
+
+    @staticmethod
+    def create_websocket():
+        """
+        Establishes a connection to the GUI via WebSocket.
+        """
+        try:
+            websocket_url = "ws://gui-container:8004/kpi-updates"
+            websocket = asyncio.run(websockets.connect(websocket_url))
+            print("Connected to GUI WebSocket at:", websocket_url)
+            return websocket
+        except Exception as e:
+            print(f"Error connecting to GUI WebSocket: {e}")
+            return None
+
+    async def consume(self, request: RealTimeRequest, stop_event):
+        try:
+            print("consuming")
+            while not stop_event.is_set():
+                # get the last message from the topic
+                real_time_kpis = (await self.consumer.getone()).value
+                print("Consumed message: ", real_time_kpis)
+
+                # compute real time kpis
+                result = self.compute_real_time(real_time_kpis, request)
+                print(result)
+
+                # send the computed result to the GUI via websocket
+
+        except Exception as e:
+            print("Error in consumer: ", e)
+        finally:
+            await self.consumer.stop()
+
+    def compute_real_time(
+        self, real_time_kpis: list[RealTimeKPI], request: RealTimeRequest
+    ):
+        # add kpis to partial results
+        # compute kpi in real time aggregating everything
+        pass
+
+    async def send_real_time_result(self, response: RealTimeKPIResponse):
+        """
+        Sends a real-time result to the GUI via the WebSocket.
+        """
+        try:
+            if not self.websocket:
+                raise RuntimeError("WebSocket is not connected.")
+
+            # Convert the response to JSON and send it
+            await self.websocket.send(response.to_json())
+            print("Sent real-time KPI result to GUI:", response.to_json())
+        except Exception as e:
+            print(f"Error sending real-time result via WebSocket: {e}")
+
+    async def stop(self):
+        try:
+            if self.consumer:
+                await self.consumer.stop()
+                print("Kafka consumer stopped.")
+
+            if self.websocket:
+                await self.websocket.close()
+                print("WebSocket connection closed.")
+
+            response = requests.get(
+                "http://data-preprocessing-container:8003/real-time/stop",
+            )
+            response.raise_for_status()
+
+        except Exception as e:
+            print(f"Error stopping connections: {e}")
+
     @staticmethod
     def compute(request: KPIRequest) -> KPIResponse:
 
@@ -44,6 +182,8 @@ class KPIEngine:
         except Exception as e:
             return KPIResponse(message=repr(e), value=-1)
 
+        print(result)
+
         # aggregated on time
         result = dyn.finalize_mo(result, partial_result, request.time_aggregation)
 
@@ -62,7 +202,6 @@ class KPIEngine:
 
 
 def preprocessing(kpi_name: str, formulas_dict: dict[str, Any]) -> dict[str, Any]:
-
     partial_result = {}
     # get the actual formula of the kpi
     kpi_formula = formulas_dict[kpi_name]
@@ -80,7 +219,6 @@ def insert_aggregated_kpi(
     kpi_list: list,
     value: np.float64,
 ):
-
     insert_query = """
         INSERT INTO aggregated_kpi (name, aggregated_value, begin_datetime, end_datetime, kpi_list, operations, machines, step)
         VALUES (%s, %s, %s, %s, %s, %s, %s, %s);
@@ -106,8 +244,20 @@ def insert_aggregated_kpi(
 
 def get_kpi_formula(name: str) -> dict[str, str]:
     response = requests.get(
-        "http://kb-service-container:8001/get_formulas", params={"kpi_label": name}, timeout=5
+        "http://kb-service-container:8001/kpi-formulas", params={"kpi": name}, timeout=5
     )
     if response.status_code != 200:
         raise exceptions.KPIFormulaNotFoundException()
-    return response.json()
+    response = response.json()
+    return response["formulas"]
+
+
+def get_references(name: str) -> list[str]:
+    try:
+        response = get_kpi_formula(name)
+        print(response)
+    except exceptions.KPIFormulaNotFoundException() as e:
+        print(f"Error getting KPI database references: {e}")
+        return []
+    # TODO: get the references from the KB
+    return ["time_sum"]

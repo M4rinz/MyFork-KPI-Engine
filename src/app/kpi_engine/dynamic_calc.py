@@ -107,7 +107,9 @@ def query_DB(kpi: str, request: KPIRequest, **kwargs) -> tuple[np.ndarray, np.nd
     """
 
     response = requests.get(
-        "http://smart-database-container:8002/query", params={"statement": raw_query_statement}, timeout=10
+        "http://smart-database-container:8002/query",
+        params={"statement": raw_query_statement},
+        timeout=10,
     )
     data = response.json()["data"]
 
