@@ -113,6 +113,8 @@ class KPIEngine:
 
     def compute_real_time(
         self, real_time_kpis: list[RealTimeKPI], request: RealTimeRequest
+
+        # in self dobbiamo mettere i risulati parziali
     ):
         # add kpis to partial results
         # compute kpi in real time aggregating everything
@@ -255,9 +257,220 @@ def get_kpi_formula(name: str) -> dict[str, str]:
 def get_references(name: str) -> list[str]:
     try:
         response = get_kpi_formula(name)
-        print(response)
+        if response is None:
+            # here i get the reference from the KB with the other method
+            response= get_closest_kpi_formula(name)
+            response= response['formulas']
+
+        #funzione che ritorna la formula pulita 
+        formulas,operazioni = clean_placeholders(input_formulas)
+        #i take the first key
+        formula_name = next(iter(my_dict))
+        formula = formulas[formula_name]
+        # torna un dizionario dove la chiave 'formula' ha la formula trasformata, agg è l'aggregazione mo da 
+        # applicare e operazioni che sara sempre una stringa vuota tranne se nella formula ci sono idle working o offline
+        result = transform_formula(formula,formulas,operazioni)
+
+        # prende la lista di occorenze di kpi nella formula da mandare al gruppo 3
+        involved_kpi=extract_names(result['formula'])
+        
     except exceptions.KPIFormulaNotFoundException() as e:
         print(f"Error getting KPI database references: {e}")
         return []
-    # TODO: get the references from the KB
-    return ["time_sum"]
+    # TODO: get the references from the KB as a list
+
+    # return involved_kpi,result
+    return ["time_sum"],result #adesso ritona questa lista perchè gruppo 3 non pronto
+
+
+#formula = formulas[formula_name]
+# formulas ==dizionario
+def transform_formula(formula, formulas,operatIWO):
+
+    result={}
+
+    #substitution of the R references with their formula
+    formula = re.sub(r'R°(\w+)', lambda match: f"{formulas[match.group(1)]}", formula)
+    formula = re.sub(r'D°(\w+)', r'\1', formula)
+
+    
+    #looking for all the aggregations and remove them
+    formula=''.join(formula.split())
+    result['formula']=formula
+    result['operations_f']=operatIWO
+    result=remove_agg(result)
+
+    # then if in the formula there are pairwise operation then transform in a parsable formula
+    result['formula'] = transform_expression_recursive(result['formula'])
+    return result
+
+# this clean the formulas that we get from the KB
+def clean_placeholders(formulas):
+    cleaned_formulas = {}
+    operations = []
+
+    # Itera attraverso ogni formula per la pulizia
+    for key, formula in formulas.items():
+        
+        # Cerca e rimuovi i placeholder specifici
+        if '°T°m°idle°' in formula:
+            operations.append('idle')
+            formula = formula.replace('°T°m°idle°', '')
+
+        if '°T°m°working°' in formula:
+            operations.append('working')
+            formula = formula.replace('°T°m°working°', '')
+
+        if '°T°m°offline°' in formula:
+            operations.append('offline')
+            formula = formula.replace('°T°m°offline°', '')
+
+        if '°T°M°idle°' in formula:
+            operations.append('idle')
+            formula = formula.replace('°T°M°idle°', '')
+
+        if '°T°M°working°' in formula:
+            operations.append('working')
+            formula = formula.replace('°T°M°working°', '')
+
+        if '°T°M°offline°' in formula:
+            operations.append('offline')
+            formula = formula.replace('°T°M°offline°', '')
+
+        # Rimuovi gli altri placeholder
+        formula = re.sub(r'°t°m°o°', '', formula)
+        formula = re.sub(r'°T°m°o°', '', formula)
+
+        # Salva la formula pulita
+        cleaned_formulas[key] = formula.strip()
+
+    return cleaned_formulas, operations
+
+
+# we remouve the aggregations
+def remove_agg(result):
+
+    formula=result['formula']
+
+    formula = re.sub(r'°t', '', formula)
+    formula = re.sub(r'°mo', '', formula)
+    formula = re.sub(r'A°m', 'A°M', formula)
+    formula = re.sub(r'°m', '', formula)
+
+    indice=float('inf')
+
+    agg_functions = ['A°sum[', 'A°Mean[', 'A°max[', 'A°Min[', 'A°var[', 'A°std[']
+    first_aggregation = None  # Variabile per salvare la prima aggregazione trovata
+
+    while any(agg_func in formula for agg_func in agg_functions):
+        # Trova la posizione di apertura della prima occorrenza di una funzione di aggregazione
+        for agg_func in agg_functions:
+            start_index = formula.find(agg_func)
+            if start_index != -1:
+                # Salva il nome della prima aggregazione trovata
+                if first_aggregation is None or start_index < indice:
+                    indice=start_index
+                    first_aggregation = agg_func.strip('A°[').lower()  # Salva il nome in minuscolo
+                break
+        
+        # We interrup immediatly if we don't find anything
+        if start_index == -1:
+            break
+        
+        # we initialize a counter for the [ and ] in particular we increase if we find a [ and decrease if ] so we 
+        # delete the aggregation and the corrisponding []
+        depth = 1
+        end_index = start_index + len(agg_func)
+        
+        # Here the implementation of the logic explained before
+        for i, char in enumerate(formula[start_index + len(agg_func):]):
+            if char == '[':
+                depth += 1
+            elif char == ']':
+                depth -= 1
+            
+            if depth == 0:
+                end_index = start_index + len(agg_func) + i
+                break
+        
+        # here we check if the ] is the last char of the formula then we return a new expression that star from
+        #  the next char after A°aggr[ and end at the last char before the ] and we have two cases :
+        # the first if the ] is at the end of the expression
+        # the second if th ] is in the middle of the expression
+        if (len(formula)-1) == end_index:
+            formula = formula[:start_index] + formula[start_index + len(agg_func):end_index]
+        else:
+            formula = formula[:start_index] + formula[start_index + len(agg_func):end_index] + formula[end_index+1:]
+        
+        # remove extra space
+        formula = ''.join(formula.split())
+
+
+    result['formula']=formula
+    result['agg']=first_aggregation
+    return result
+
+
+
+def transform_expression_recursive(expression):
+
+    # Map of the possible operator that we can find
+    operator_map = ['S°/', 'S°*', 'S°+', 'S°-', 'S°**']
+
+    #we check for the possible S° operator and we start from the outer one
+    while any(op in expression for op in operator_map):
+        for op in operator_map:
+            start_index = expression.find(op + '[')
+            print(start_index)
+            if start_index != -1:
+                break
+
+        # if we don't find an operator    
+        if start_index == -1:
+            break
+
+        # we initialize a counter for the  []parentesis in increase the counter by one if we find [ and decrease
+        # by one if we find a ] so when we find a ; and counter ==1 we sobstitute it with the operator and then
+        # we put () instead []
+        depth = 1
+        end_index = start_index + len(op) + 1  # Dopo l'apertura della parentesi quadra
+        semicolon_index = None
+
+        for i, char in enumerate(expression[start_index + len(op) + 1:], start=start_index + len(op) + 1):
+            if char == '[':
+                depth += 1
+            elif char == ']':
+                depth -= 1
+            elif char == ';' and depth == 1:
+                semicolon_index = i
+            
+            if depth == 0:
+                end_index = i
+                break
+
+        # sobstitute the most internal block with the operator
+        if semicolon_index is not None:
+            # substitute the ; with the operator
+            expression = (
+                expression[:start_index] +
+                '(' +
+                expression[start_index + len(op) + 1:semicolon_index] +
+                f' {op[2]} ' +  # Usa il simbolo dell'operatore
+                expression[semicolon_index + 1:end_index] +
+                ')' +
+                expression[end_index + 1:]
+            )
+
+    # if there is a 100 then clean it
+    expression = expression.replace('C°100°', '100')
+    return expression.strip()
+
+
+def extract_names(expression):
+    # Pattern to find valide namesi: letters, numbers and underscore
+    pattern = re.compile(r'\b[a-zA-Z_]\w*\b')  # we don't mach pure numbers
+    names = pattern.findall(expression)
+
+    # we exclude the 100 value
+    filtered_names = [name for name in names if name != "100"]
+    return filtered_names
