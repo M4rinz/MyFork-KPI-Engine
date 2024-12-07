@@ -1,7 +1,7 @@
-import json
 from datetime import datetime
 from pydantic import BaseModel, validator
-from src.app.kpi_engine import grammar
+
+from src.app.models import grammar
 
 
 class KPIRequest(BaseModel):
@@ -57,38 +57,3 @@ class KPIRequest(BaseModel):
                 f"Invalid aggregation function. Must be one of {grammar.aggregations}"
             )
         return value
-
-
-class RealTimeRequest(BaseModel):
-    name: str
-    machines: list
-    operations: list
-    time_aggregation: str
-    start_date: datetime  # (YYYY-MM-DD HH:MM:SS)
-
-
-class KPIStreamingRequest(BaseModel):
-    kpis: list[str]  # lis of all kpis
-    machines: list[str]  # list of all machines
-    operations: list[str]  # list of all operations
-
-    def to_json(self):
-        return json.dumps(self, default=lambda o: o.__dict__, indent=4)
-
-
-class RealTimeKPI(BaseModel):
-    kpi: str
-    machine: str
-    operation: str
-    column: str
-    value: float
-
-    @classmethod
-    def from_json(cls, data):
-        return cls(
-            kpi=data["kpi"],
-            machine=data["machine"],
-            operation=data["operation"],
-            column=data["column"],
-            value=data["value"],
-        )
