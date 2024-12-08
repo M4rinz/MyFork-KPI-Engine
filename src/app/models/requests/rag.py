@@ -1,7 +1,8 @@
 from datetime import datetime
 from pydantic import BaseModel, validator
 
-from src.app.models import grammar
+#from src.app.models import grammar
+from app.models import grammar
 
 
 class KPIRequest(BaseModel):

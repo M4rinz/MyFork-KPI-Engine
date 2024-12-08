@@ -1,17 +1,28 @@
 # this clean the formulas that we get from the KB
 import re
 
-from src.app.models import exceptions
-from src.app.services.knowledge_base import get_closest_kpi_formula, get_kpi_formula
+#from src.app.models import exceptions
+#from src.app.services.knowledge_base import get_closest_kpi_formula, get_kpi_formula
+
+from app.models import exceptions
+from app.services.knowledge_base import get_closest_kpi_formula, get_kpi_formula
 
 
 def clean_placeholders(formulas: dict[str, str]):
     """
-    Cleans the formula from the placeholders used in the KB. The placeholders are as °T°m°o, ...
-    When it encounters operations such as idle, working, offline, it saves them in a list.
-
-    :param formulas: The formulas dictionary to clean
-    :return The cleaned formulas dictionary and the operations list
+    Cleans the formulas by removing the placeholders used in the Knowledge Base (KB) and replacing them with specific
+    operations such as 'idle', 'working', 'offline'. When one of these operations is encountered, it is saved in a separate list.
+    
+    The function iterates over each formula in the `formulas` dictionary and replaces the placeholders with their associated operations.
+    The recognized placeholders are related to the activity states (idle, working, offline) and general placeholders like "°T°m°o°".
+    
+    :param formulas: A dictionary containing the formulas to clean. The keys are the names of the formulas, and the values are the formula strings.
+    :type formulas: dict[str, str]
+    
+    :return: A tuple with two elements:
+        - A dictionary containing the cleaned formulas, where the keys are the names of the formulas and the values are the formulas with placeholders removed.
+        - A list containing the detected operations (e.g., "idle", "working", "offline").
+    :rtype: tuple[dict[str, str], list[str]]
     """
     cleaned_formulas = {}
     operations = []
@@ -48,8 +59,13 @@ def remove_aggregations(result: dict[str, str]) -> dict[str, str]:
     Removes the A° aggregations from the formula and saves the outermost one.
     If there are binary operations, it transforms them into a numexpr-parsable formula.
 
-    :param result: The result dictionary containing the formula to clean
-    :return The cleaned result dictionary with all infos to compute the formula
+    :param result: A dictionary containing the formula to clean. It includes:
+        - 'formula': The formula string to clean.
+        - 'agg': (Optional) The type of aggregation function found in the formula.
+    :type result: dict[str, str]
+    
+    :return: The updated dictionary containing the cleaned formula with the outermost aggregation removed, and the aggregation type saved.
+    :rtype: dict[str, str]
     """
 
     formula = result["formula"]
@@ -131,8 +147,14 @@ def to_evaluable(formula: str):
     Transforms the expression in a parsable form for the numexpr library.
     It transforms the binary operations in a parsable form for the numexpr library.
 
-    :param formula: The expression to transform
-    :return The transformed expression
+    The function looks for specific operator patterns in the formula, converts them to the corresponding Python operators, 
+    and handles constants (e.g., "C°[number]°") by replacing them with the actual numeric value.
+
+    :param formula: The formula string to be transformed into a numexpr-compatible format.
+    :type formula: str
+    
+    :return: The transformed formula as a string, formatted for numexpr evaluation.
+    :rtype: str
     """
     # Map of the possible operator that we can find
     operator_map = ["S°/", "S°*", "S°+", "S°-", "S°**"]
@@ -193,10 +215,14 @@ def to_evaluable(formula: str):
 
 def extract_names(expression: str) -> list[str]:
     """
-    Extracts the names from an expression.
+    Extracts the names from an expression. The function finds all alphanumeric sequences that represent 
+    variable names and ignores pure numbers.
 
-    :param expression: The expression to extract the names from
-    :return The list of names extracted from the expression, avoiding pure numbers
+    :param expression: The mathematical expression from which to extract variable names.
+    :type expression: str
+    
+    :return: A list of variable names extracted from the expression.
+    :rtype: list[str]
     """
     # Pattern to find valid names: letters, numbers and underscore
     pattern = re.compile(r"\b[a-zA-Z_]\w*\b")  # we don't mach pure numbers
@@ -209,11 +235,18 @@ def extract_names(expression: str) -> list[str]:
 
 def prepare_for_real_time(kpi_name: str) -> (list[str], dict[str, str]):
     """
-    Gets the references from the KB for a given KPI name. Then it cleans the formulas and transforms them in a parsable
-    form for the numexpr library.
+    Retrieves the formula for a given KPI name from the knowledge base (KB), cleans and transforms the formula 
+    into a parsable form compatible with the numexpr library, and extracts the involved KPIs.
 
-    :param kpi_name: The KPI name to get the references for
-    :return The list of involved KPIs in the formula and the evaluable formula inside a dictionary
+    :param kpi_name: The name of the KPI for which to retrieve the formula and transform.
+    :type kpi_name: str
+
+    :return: A tuple containing:
+        - A list of KPI names that are involved in the formula.
+        - A dictionary containing the transformed formula, ready for numexpr evaluation.
+    :rtype: tuple[list[str], dict[str, str]]
+
+    :raises KPIFormulaNotFoundException: If no formula could be found for the given KPI name.
     """
     try:
         response = get_kpi_formula(kpi_name)
@@ -241,10 +274,17 @@ def transform_formula(
     """
     Takes a formula and its sub formulas and transforms it in a parsable form for the numexpr library.
 
-    :param formula: The formula to transform
-    :param formulas: The formulas dictionary
-    :param operation_IWO: The operations idle, working, offline
-    :return The transformed formula in a dict in which 'formula' is the key
+    :param formula: The formula to be transformed.
+    :type formula: str
+    :param formulas: A dictionary of formulas, where the keys are formula names and the values are the actual formulas.
+    :type formulas: dict[str, str]
+    :param operation_IWO: A list of operations.
+    :type operation_IWO: list[str]
+
+    :return: A dictionary containing:
+        - 'formula': The transformed formula that can be evaluated by numexpr.
+        - 'operations_f': The operations found in the formula.
+    :rtype: dict[str, str]
     """
     result = {}
 

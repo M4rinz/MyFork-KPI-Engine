@@ -1,5 +1,5 @@
-app package
-===========
+app.api package
+===============
 
 Subpackages
 -----------
@@ -7,19 +7,15 @@ Subpackages
 .. toctree::
    :maxdepth: 4
 
-   app.api
-   app.kpi_engine
-   app.models
-   app.services
-   app.utils
+   app.api.endpoints
 
 Submodules
 ----------
 
-app.main module
----------------
+app.api.router module
+---------------------
 
-.. automodule:: app.main
+.. automodule:: app.api.router
    :members:
    :undoc-members:
    :show-inheritance:
@@ -27,7 +23,7 @@ app.main module
 Module contents
 ---------------
 
-.. automodule:: app
+.. automodule:: app.api
    :members:
    :undoc-members:
    :show-inheritance:

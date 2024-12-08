@@ -7,12 +7,18 @@ import numpy as np
 from nanoid import generate
 import requests
 
-import src.app.models.grammar as grammar
-import src.app.models.exceptions as exceptions
-from src.app.models.requests.rag import KPIRequest
-from src.app.models.responses.rag import KPIResponse
-from src.app.services.database import insert_aggregated_kpi
-from src.app.services.knowledge_base import get_kpi_formula
+#import src.app.models.grammar as grammar
+#import src.app.models.exceptions as exceptions
+#from src.app.models.requests.rag import KPIRequest
+#from src.app.models.responses.rag import KPIResponse
+#from src.app.services.database import insert_aggregated_kpi
+#from src.app.services.knowledge_base import get_kpi_formula
+import app.models.grammar as grammar
+import app.models.exceptions as exceptions
+from app.models.requests.rag import KPIRequest
+from app.models.responses.rag import KPIResponse
+from app.services.database import insert_aggregated_kpi
+from app.services.knowledge_base import get_kpi_formula
 
 load_dotenv()
 
@@ -353,7 +359,18 @@ def C(kpi: str, partial_result: dict[str, Any], **kwargs):
 
 
 def compute(request: KPIRequest) -> KPIResponse:
+    """Computes the value of a KPI based on the given request, including the validation of machines and operations,
+    fetching the corresponding formula from the knowledge base, and performing the necessary calculations and 
+    aggregation.
 
+    :param request: The KPI request containing parameters such as KPI name, machines, operations, time range, 
+                    and time aggregation.
+    :type request: :class:`KPIRequest`
+    :return: A response containing a message with the computed result and the value of the KPI.
+    :rtype: :class:`KPIResponse`
+    :raises Exception: If an error occurs during the calculation process, such as invalid machines/operations, 
+                       failure to fetch the formula, or any computation errors.
+    """
     name = request.name
     machines = request.machines
     operations = request.operations

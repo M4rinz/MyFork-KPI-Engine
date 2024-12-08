@@ -2,15 +2,21 @@
 import os
 from fastapi import FastAPI
 import uvicorn
-from src.app.api.router import api_router
-from src.app.api.endpoints.real_time import shutdown_event
+#from src.app.api.router import api_router
+#from src.app.api.endpoints.real_time import shutdown_event
+from app.api.router import api_router
+from app.api.endpoints.real_time import shutdown_event
 
-app = FastAPI()
-app.include_router(api_router)
+#app = FastAPI()
+#app.include_router(api_router)
 
 
 def start():
     """Starts the FastAPI application using Uvicorn.
+
+    This function initializes and runs the FastAPI application with Uvicorn server.
+    The host is determined based on the environment variable `RUNNING_IN_DOCKER`. 
+    If running inside Docker, the host is set to '0.0.0.0', otherwise, it defaults to '127.0.0.1'.
 
     :param None: This function takes no parameters.
     :raises RuntimeError: If the server fails to start.
@@ -24,12 +30,21 @@ def start():
     uvicorn.run("src.app.main:app", host=host, port=8008, reload=True)
 
 
-@app.on_event("shutdown")
+#@app.on_event("shutdown")
 async def shutdown():
+    """Shuts down the application gracefully.
+
+    This function is called when the application is about to shut down.
+    It ensures that any necessary cleanup or shutdown processes are executed.
+
+    :param None: This function takes no parameters.
+    :return: None
+    :rtype: None
+    """
     await shutdown_event()
 
 
-@app.get("/")
+#@app.get("/")
 def read_root():
     """Handles the root GET endpoint.
     This endpoint returns a welcome message to confirm that the service is running.
@@ -42,6 +57,14 @@ def read_root():
     return {"Message": "Welcome to the KPI Engine!"}
 
 
-@app.get("/health/")
+#@app.get("/health/")
 def health_check():
+    """Health check GET endpoint.
+
+    This endpoint is used to check if the service is running and responding correctly.
+
+    :param None: This function takes no parameters.
+    :return: A dictionary indicating the health status of the service.
+    :rtype: dict
+    """
     return {"Status": "ok"}

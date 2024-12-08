@@ -9,16 +9,46 @@ import numexpr as ne
 
 from aiokafka import AIOKafkaConsumer
 
-from src.app.models.real_time_kpi import RealTimeKPI
-from src.app.models.requests.gui import RealTimeKPIRequest
-from src.app.models.responses.gui import RealTimeKPIResponse
-from src.app.utils.kafka_admin import delete_kafka_topic
+#from src.app.models.real_time_kpi import RealTimeKPI
+#from src.app.models.requests.gui import RealTimeKPIRequest
+#from src.app.models.responses.gui import RealTimeKPIResponse
+#from src.app.utils.kafka_admin import delete_kafka_topic
+
+from app.models.real_time_kpi import RealTimeKPI
+from app.models.requests.gui import RealTimeKPIRequest
+from app.models.responses.gui import RealTimeKPIResponse
+from app.utils.kafka_admin import delete_kafka_topic
 
 
 class KPIEngine:
+    """This class represents the core engine for real-time KPI computation. It integrates Kafka for message consumption,
+    numpy and numexpr for numerical computation, and WebSocket for real-time
+    communication with a GUI.
+
+    :param topic: The Kafka topic from which the engine consumes data.
+    :type topic: str
+    :param port: The port number for the Kafka server.
+    :type port: str
+    :param servers: The address of the Kafka server.
+    :type servers: str
+    :param evaluable_formula_info: A dictionary containing the formula, 
+        operations, and aggregation rules for KPI computation.
+    :type evaluable_formula_info: dict
+    """
     instance = None
 
     def __init__(self, topic, port, servers, evaluable_formula_info) -> None:
+        """Constructor method for initializing the KPIEngine.
+
+        :param topic: The Kafka topic to consume messages from.
+        :type topic: str
+        :param port: The Kafka broker port.
+        :type port: str
+        :param servers: The Kafka broker server address.
+        :type servers: str
+        :param evaluable_formula_info: Dictionary containing formula information.
+        :type evaluable_formula_info: dict
+        """
         self._topic = topic
         self._port = port
         self._servers = servers
@@ -38,6 +68,15 @@ class KPIEngine:
         )
 
     def create_consumer(self):
+        """
+        Creates and returns an AIOKafkaConsumer instance for consuming messages from the Kafka topic.
+
+        This method sets up the Kafka consumer with the necessary configurations and 
+        decodes the messages into `RealTimeKPI` objects.
+
+        :return: A Kafka consumer instance configured for the specified topic.
+        :rtype: AIOKafkaConsumer
+        """
         def decode_message(message):
             return [
                 RealTimeKPI.from_json(json.loads(item))
@@ -52,6 +91,14 @@ class KPIEngine:
         )
 
     async def start_consumer(self):
+        """
+        Starts the Kafka consumer. Ensures that the consumer is correctly initialized and begins listening 
+        for messages on the assigned topic.
+
+        :raises Exception: If the consumer fails to start.
+        :return: Dictionary indicating success or failure.
+        :rtype: dict
+        """
         try:
             await self.consumer.start()
             print("Consumer started successfully")
@@ -60,6 +107,15 @@ class KPIEngine:
             return {"Error": f"Error starting consumer: {str(e)}"}
 
     async def consume(self, request: RealTimeKPIRequest, stop_event):
+        """
+        Continuously consumes messages from the Kafka topic, processes the data to compute KPIs, 
+        and optionally sends the results to a GUI.
+
+        :param request: The request containing user-defined parameters for KPI computation.
+        :type request: RealTimeKPIRequest
+        :param stop_event: An event to signal the termination of consumption.
+        :type stop_event: threading.Event
+        """
         try:
             print("Consuming messages...")
             print("Request: ", request)
@@ -83,6 +139,16 @@ class KPIEngine:
     def compute_real_time(
             self, real_time_kpis: list[RealTimeKPI], request: RealTimeKPIRequest
     ) -> RealTimeKPIResponse:
+        """
+        Processes a batch of real-time KPI data to compute aggregated results based on the user-defined formula.
+
+        :param real_time_kpis: List of real-time KPI data objects.
+        :type real_time_kpis: list[RealTimeKPI]
+        :param request: Request object defining computation parameters.
+        :type request: RealTimeKPIRequest
+        :return: Computed KPI results encapsulated in a response object.
+        :rtype: RealTimeKPIResponse
+        """
 
         print("Computing real-time KPIs...")
         print("Real-time KPIs: ", real_time_kpis)
@@ -122,8 +188,10 @@ class KPIEngine:
         return response
 
     async def send_real_time_result(self, response: RealTimeKPIResponse):
-        """
-        Sends a real-time result to the GUI via the WebSocket.
+        """Sends computed KPI results to the GUI via WebSocket.
+
+        :param response: The computed KPI response to be sent.
+        :type response: RealTimeKPIResponse
         """
         try:
             if not self.websocket:
@@ -136,6 +204,12 @@ class KPIEngine:
             print(f"Error sending real-time result via WebSocket: {e}")
 
     async def stop(self):
+        """
+        Stops the Kafka consumer, cleans up WebSocket connections, and sends a termination signal 
+        to the data preprocessing service.
+
+        :raises Exception: If there is an error during the shutdown process.
+        """
         try:
             if self.consumer:
                 await self.consumer.stop()

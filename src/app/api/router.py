@@ -1,5 +1,6 @@
 from fastapi import APIRouter
-from src.app.api.endpoints import kpi, real_time
+from app.api.endpoints import kpi, real_time
+#from src.app.api.endpoints import kpi, real_time
 
 api_router = APIRouter()
 api_router.include_router(kpi.router, prefix="/kpi", tags=["kpi"])
