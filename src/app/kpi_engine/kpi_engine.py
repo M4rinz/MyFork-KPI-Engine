@@ -1,150 +1,116 @@
 """KPI Calculation Engine."""
 
-import numpy as np
+import json
+
 import requests
 
-#from src.app.kpi_engine.kpi_request import KPIRequest
-#from src.app.kpi_engine.kpi_response import KPIResponse
-#import src.app.kpi_engine.dynamic_calc as dyn
-#import src.app.kpi_engine.exceptions as exceptions
 
-from app.kpi_engine.kpi_request import KPIRequest
-from app.kpi_engine.kpi_response import KPIResponse
-import app.kpi_engine.dynamic_calc as dyn
-import app.kpi_engine.exceptions as exceptions
+from aiokafka import AIOKafkaConsumer
 
-from typing import Any
+from src.app.models.real_time_kpi import RealTimeKPI
+from src.app.models.requests.gui import RealTimeKPIRequest
+from src.app.models.responses.gui import RealTimeKPIResponse
+from src.app.utils.kafka_admin import delete_kafka_topic
 
 
 class KPIEngine:
-    @staticmethod
-    def compute(request: KPIRequest) -> KPIResponse:
-        """This class handles the computation of Key Performance Indicators (KPIs).
+    instance = None
 
-        The class interacts with the knowledge base to fetch formulas, preprocesses the KPI computation logic,
-        and utilizes dynamic calculations to compute and aggregate the required KPIs.
+    def __init__(self, topic, port, servers) -> None:
+        self._topic = topic
+        self._port = port
+        self._servers = servers
+        self.consumer = self.create_consumer()
+        self.websocket = None
+        # self.websocket = create_websocket()
+        KPIEngine.instance = self
+        print(
+            "KPI Engine initialized: created consumer. Topic: ",
+            topic,
+            " Port: ",
+            port,
+            " Servers: ",
+            servers,
+        )
+
+    def create_consumer(self):
+        def decode_message(message):
+            return [
+                RealTimeKPI.from_json(json.loads(item))
+                for item in json.loads(message.decode("utf-8"))
+            ]
+
+        return AIOKafkaConsumer(
+            self._topic,
+            bootstrap_servers=f"{self._servers}:{self._port}",
+            # value_deserializer=decode_message,
+            auto_offset_reset="earliest",
+        )
+
+    async def start_consumer(self):
+        try:
+            await self.consumer.start()
+            print("Consumer started successfully")
+        except Exception as e:
+            print(f"Error starting consumer: {e}")
+            return {"Error": f"Error starting consumer: {str(e)}"}
+
+    async def consume(self, request: RealTimeKPIRequest, stop_event):
+        try:
+            print("consuming")
+            while not stop_event.is_set():
+                # get the last message from the topic
+                real_time_kpis = (await self.consumer.getone()).value
+                print("Consumed message: ", real_time_kpis)
+
+                # compute real time kpis
+                _ = self.compute_real_time(real_time_kpis, request)
+
+                # send the computed result to the GUI via websocket
+                # await self.send_real_time_result(real_time_response)
+
+        except Exception as e:
+            print("Error in consumer: ", e)
+        finally:
+            await self.consumer.stop()
+
+    def compute_real_time(
+        self, real_time_kpis: list[RealTimeKPI], request: RealTimeKPIRequest
+    ) -> RealTimeKPIResponse:
+        # add kpis to partial results
+        # compute kpi in real time aggregating everything
+        pass
+
+    async def send_real_time_result(self, response: RealTimeKPIResponse):
         """
-        name = request.name
-        machines = request.machines
-        operations = request.operations
+        Sends a real-time result to the GUI via the WebSocket.
+        """
+        try:
+            if not self.websocket:
+                raise RuntimeError("WebSocket is not connected.")
 
-        # validate machines and operations
-        if len(machines) != len(operations):
-            return KPIResponse(
-                message="Invalid number of machines and operations", value=-1
+            # Convert the response to JSON and send it
+            await self.websocket.send(response.to_json())
+            print("Sent real-time KPI result to GUI:", response.to_json())
+        except Exception as e:
+            print(f"Error sending real-time result via WebSocket: {e}")
+
+    async def stop(self):
+        try:
+            if self.consumer:
+                await self.consumer.stop()
+                print("Kafka consumer stopped.")
+
+            await delete_kafka_topic(self._topic, f"{self._servers}:{self._topic}")
+
+            if self.websocket:
+                await self.websocket.close()
+                print("WebSocket connection closed.")
+
+            response = requests.get(
+                "http://data-preprocessing-container:8003/real-time/stop",
             )
+            response.raise_for_status()
 
-        # get the formula from the KB
-        try:
-            formulas = get_kpi_formula(name)
         except Exception as e:
-            return KPIResponse(message=repr(e), value=-1)
-
-        start_date = request.start_date
-        end_date = request.end_date
-        aggregation = request.time_aggregation
-
-        # inits the kpi calculation by finding the outermost aggregation and involved aggregation variables
-        partial_result = preprocessing(name, formulas)
-
-        try:
-            # computes the final matrix that has to be aggregated for mo and time_aggregation
-            result = dyn.dynamic_kpi(formulas[name], formulas, partial_result, request)
-        except Exception as e:
-            return KPIResponse(message=repr(e), value=-1)
-
-        # aggregated on time
-        result = dyn.finalize_mo(result, partial_result, request.time_aggregation)
-
-        message = (
-            f"The {aggregation} of KPI {name} for machines {machines} with operations {operations} "
-            f"from {start_date} to {end_date} is {result}"
-        )
-
-        insert_aggregated_kpi(
-            request=request,
-            kpi_list=formulas.keys(),
-            value=result,
-        )
-
-        return KPIResponse(message=message, value=result)
-
-
-def preprocessing(kpi_name: str, formulas_dict: dict[str, Any]) -> dict[str, Any]:
-    """Preprocesses the KPI formula to extract aggregation variables and operations.
-
-    :param kpi_name: The name of the KPI.
-    :type kpi_name: str
-    :param formulas_dict: Dictionary containing KPI formulas.
-    :type formulas_dict: dict[str, Any]
-    :return: A dictionary with aggregation variables and operations.
-    :rtype: dict[str, Any]
-    """
-    partial_result = {}
-    # get the actual formula of the kpi
-    kpi_formula = formulas_dict[kpi_name]
-    # get the variables of the aggregation
-    search_var = kpi_formula.split("°")
-    # split because we always have [ after the last match of the aggregation
-    aggregation_variables = search_var[2].split("[")
-    partial_result["agg_outer_vars"] = aggregation_variables[0]
-    partial_result["agg"] = search_var[1]
-    return partial_result
-
-
-def insert_aggregated_kpi(
-    request: KPIRequest,
-    kpi_list: list,
-    value: np.float64,
-):
-    """Inserts the aggregated KPI result into the database.
-
-    :param request: The KPI request containing details like name, machines, and operations.
-    :type request: KPIRequest
-    :param kpi_list: List of KPIs involved in the aggregation.
-    :type kpi_list: list
-    :param value: The aggregated KPI value.
-    :type value: np.float64
-    :return: The response from the database after insertion.
-    :rtype: requests.Response
-    """
-    insert_query = """
-        INSERT INTO aggregated_kpi (name, aggregated_value, begin_datetime, end_datetime, kpi_list, operations, machines, step)
-        VALUES (%s, %s, %s, %s, %s, %s, %s, %s);
-    """
-
-    data = (
-        request.name,
-        value.item(),
-        str(request.start_date),
-        str(request.end_date),
-        list(kpi_list),
-        request.operations,
-        request.machines,
-        request.step,
-    )
-
-    return requests.post(
-        "http://smart-database-container:8002/insert",
-        json={"statement": insert_query, "data": data},
-        timeout=5,
-    )
-
-
-def get_kpi_formula(name: str) -> dict[str, str]:
-    """Fetches the KPI formula from the knowledge base.
-
-    :param name: The name of the KPI.
-    :type name: str
-    :raises exceptions.KPIFormulaNotFoundException: If the KPI formula is not found.
-    :return: A dictionary containing KPI formulas.
-    :rtype: dict[str, str]
-    """
-    response = requests.get(
-        "http://kb-service-container:8001/get_formulas",
-        params={"kpi_label": name},
-        timeout=5,
-    )
-    if response.status_code != 200:
-        raise exceptions.KPIFormulaNotFoundException()
-    return response.json()
+            print(f"Error stopping connections: {e}")

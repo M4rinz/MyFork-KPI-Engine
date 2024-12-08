@@ -1,7 +1,7 @@
 from datetime import datetime
 from pydantic import BaseModel, validator
-#from src.app.kpi_engine import grammar
-from app.kpi_engine import grammar
+
+from src.app.models import grammar
 
 
 class KPIRequest(BaseModel):
@@ -108,7 +108,7 @@ class KPIRequest(BaseModel):
         :return: The validated aggregation function.
         :rtype: str
         """
-        
+
         if not isinstance(value, str):
             raise ValueError("Aggregation function must be a string.")
         if value not in grammar.aggregations:

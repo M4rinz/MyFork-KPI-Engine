@@ -2,14 +2,20 @@ FROM python:3.10
 
 # Configure Poetry
 ENV POETRY_VERSION=1.8.4
+# Poetry home directory: to store the virtualenvs
 ENV POETRY_HOME=/opt/poetry
 # Poetry cache directory: it should be accessible by non-root users
 ENV POETRY_CACHE_DIR="/kpi_engine/.cache/pypoetry"
+# Poetry virtualenvs in the project directory
 ENV POETRY_VIRTUALENVS_CREATE=false
 # For having consistent imports
 ENV PYTHONPATH=/kpi_engine/src
+# For running in Docker
 ENV RUNNING_IN_DOCKER=True
-
+# Do not write .pyc files
+ENV PYTHONDONTWRITEBYTECODE 1
+# Do not buffer the output
+ENV PYTHONUNBUFFERED 1
 
 # Upgrade pip
 RUN pip install --upgrade pip

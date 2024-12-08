@@ -7,9 +7,12 @@ import numpy as np
 from nanoid import generate
 import requests
 
-from app.kpi_engine.kpi_request import KPIRequest
-import app.kpi_engine.grammar as grammar
-import app.kpi_engine.exceptions as exceptions
+import src.app.models.grammar as grammar
+import src.app.models.exceptions as exceptions
+from src.app.models.requests.rag import KPIRequest
+from src.app.models.responses.rag import KPIResponse
+from src.app.services.database import insert_aggregated_kpi
+from src.app.services.knowledge_base import get_kpi_formula
 
 load_dotenv()
 
@@ -98,7 +101,7 @@ def dynamic_kpi(
 
 
 def query_DB(kpi: str, request: KPIRequest, **kwargs) -> tuple[np.ndarray, np.ndarray]:
-    """Executes a query on the database to retrieve real-time data based on the provided KPI string, filters, and request parameters. 
+    """Executes a query on the database to retrieve real-time data based on the provided KPI string, filters, and request parameters.
     The function processes the query result, organizes the data into a DataFrame, converts it into a NumPy array, and splits it into two parts based on a specified step.
 
     :param kpi: The KPI string used to build the database query. The string is parsed to extract the relevant database field for the query.
@@ -111,7 +114,7 @@ def query_DB(kpi: str, request: KPIRequest, **kwargs) -> tuple[np.ndarray, np.nd
     :raises ValueError: If the KPI string is not in the expected format or the database reference is invalid.
     :raises EmptyQueryException: If the query results in an empty dataset (no data is returned from the database).
 
-    :return: A tuple containing two NumPy arrays: 
+    :return: A tuple containing two NumPy arrays:
              - The first array (`step_split`) contains the reshaped data split by the specified step.
              - The second array (`bottom`) contains any remaining data that could not be split evenly by the step.
     :rtype: tuple[np.ndarray, np.ndarray]
@@ -347,6 +350,67 @@ def C(kpi: str, partial_result: dict[str, Any], **kwargs):
     div = kpi.split("°")
     partial_result[key] = int(div[1])
     return "°" + key
+
+
+def compute(request: KPIRequest) -> KPIResponse:
+
+    name = request.name
+    machines = request.machines
+    operations = request.operations
+
+    # validate machines and operations
+    if len(machines) != len(operations):
+        return KPIResponse(
+            message="Invalid number of machines and operations", value=-1
+        )
+
+    # get the formula from the KB
+    try:
+        formulas = get_kpi_formula(name)
+    except Exception as e:
+        return KPIResponse(message=repr(e), value=-1)
+
+    start_date = request.start_date
+    end_date = request.end_date
+    aggregation = request.time_aggregation
+
+    # inits the kpi calculation by finding the outermost aggregation and involved aggregation variables
+    partial_result = preprocessing(name, formulas)
+
+    try:
+        # computes the final matrix that has to be aggregated for mo and time_aggregation
+        result = dynamic_kpi(formulas[name], formulas, partial_result, request)
+    except Exception as e:
+        return KPIResponse(message=repr(e), value=-1)
+
+    # aggregated on time
+    result = finalize_mo(result, partial_result, request.time_aggregation)
+
+    message = (
+        f"The {aggregation} of KPI {name} for machines {machines} with operations {operations} "
+        f"from {start_date} to {end_date} is {result}"
+    )
+
+    insert_aggregated_kpi(
+        request=request,
+        kpi_list=formulas.keys(),
+        value=result,
+    )
+
+    return KPIResponse(message=message, value=result)
+
+
+def preprocessing(kpi_name: str, formulas_dict: dict[str, Any]) -> dict[str, Any]:
+    partial_result = {}
+    # get the actual formula of the kpi
+    kpi_formula = formulas_dict[kpi_name]
+    # get the variables of the aggregation
+    search_var = kpi_formula.split("°")
+    # split because we always have [ after the last match of the aggregation
+    aggregation_variables = search_var[2].split("[")
+    partial_result["agg_outer_vars"] = aggregation_variables[0]
+    partial_result["agg"] = search_var[1]
+    return partial_result
 
 
 def finalize_mo(
