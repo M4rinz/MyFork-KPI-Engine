@@ -35,17 +35,15 @@ async def real_time_session(request: RealTimeKPIRequest) -> RealTimeResponse:
 
     stop_event.clear()
 
-    involved_kpis, evaluable_formula = prepare_for_real_time(request.name)
+    involved_kpis, evaluable_formula_info = prepare_for_real_time(request.name)
 
-    print("Involved KPIs:", involved_kpis)
-    print("Evaluable Formula:", evaluable_formula)
 
     kpi_streaming_request = KPIStreamingRequest(
         kpis=involved_kpis,
         machines=request.machines,
         operations=request.operations,
     )
-    kpi_engine = KPIEngine(KAFKA_TOPIC_NAME, KAFKA_PORT, KAFKA_SERVER)
+    kpi_engine = KPIEngine(KAFKA_TOPIC_NAME, KAFKA_PORT, KAFKA_SERVER, evaluable_formula_info)
 
     data_preprocessing_response = connect_to_publisher(kpi_streaming_request)
     print(
