@@ -27,8 +27,8 @@ def insert_aggregated_kpi(
 
     print("Inserting aggregated KPI data into the database...")
 
-    return requests.get(
+    return requests.post(
         "http://smart-database-container:8002/insert",
-        params={"statement": insert_query, "data": data},
+        json={"statement": insert_query, "data": data},
         timeout=5,
     )
