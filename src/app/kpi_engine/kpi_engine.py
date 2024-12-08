@@ -3,8 +3,6 @@
 import json
 
 import requests
-
-
 from aiokafka import AIOKafkaConsumer
 
 from src.app.models.real_time_kpi import RealTimeKPI

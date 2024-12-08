@@ -401,6 +401,15 @@ def compute(request: KPIRequest) -> KPIResponse:
 
 
 def preprocessing(kpi_name: str, formulas_dict: dict[str, Any]) -> dict[str, Any]:
+    """Preprocesses the KPI formula to extract aggregation variables and operations.
+
+    :param kpi_name: The name of the KPI.
+    :type kpi_name: str
+    :param formulas_dict: Dictionary containing KPI formulas.
+    :type formulas_dict: dict[str, Any]
+    :return: A dictionary with aggregation variables and operations.
+    :rtype: dict[str, Any]
+    """
     partial_result = {}
     # get the actual formula of the kpi
     kpi_formula = formulas_dict[kpi_name]

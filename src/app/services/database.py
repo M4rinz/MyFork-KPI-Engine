@@ -9,6 +9,17 @@ def insert_aggregated_kpi(
     kpi_list: list,
     value: np.float64,
 ):
+    """Inserts the aggregated KPI result into the database.
+
+    :param request: The KPI request containing details like name, machines, and operations.
+    :type request: KPIRequest
+    :param kpi_list: List of KPIs involved in the aggregation.
+    :type kpi_list: list
+    :param value: The aggregated KPI value.
+    :type value: np.float64
+    :return: The response from the database after insertion.
+    :rtype: requests.Response
+    """
     insert_query = """
         INSERT INTO aggregated_kpi (name, aggregated_value, begin_datetime, end_datetime, kpi_list, operations, machines, step)
         VALUES (%s, %s, %s, %s, %s, %s, %s, %s);

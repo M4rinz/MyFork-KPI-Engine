@@ -4,6 +4,14 @@ from src.app.models import exceptions
 
 
 def get_kpi_formula(name: str) -> dict[str, str]:
+    """Fetches the KPI formula from the knowledge base.
+
+    :param name: The name of the KPI.
+    :type name: str
+    :raises exceptions.KPIFormulaNotFoundException: If the KPI formula is not found.
+    :return: A dictionary containing KPI formulas.
+    :rtype: dict[str, str]
+    """
     response = requests.get(
         "http://kb-service-container:8001/kpi-formulas", params={"kpi": name}, timeout=5
     )
