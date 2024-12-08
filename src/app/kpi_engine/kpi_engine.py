@@ -22,6 +22,7 @@ class KPIEngine:
         self._servers = servers
         self.consumer = self.create_consumer()
         self.websocket = None
+        self.partial_result = {}
         # self.websocket = create_websocket()
         KPIEngine.instance = self
         print(
@@ -75,11 +76,41 @@ class KPIEngine:
             await self.consumer.stop()
 
     def compute_real_time(
-        self, real_time_kpis: list[RealTimeKPI], request: RealTimeKPIRequest
+        self, dict:dict, real_time_kpis: list[RealTimeKPI], request: RealTimeKPIRequest
     ) -> RealTimeKPIResponse:
-        # add kpis to partial results
-        # compute kpi in real time aggregating everything
-        pass
+    
+        # Convert real_time_kpis to numpy arrays
+        for kpi in real_time_kpis:
+            if kpi.kpi not in partial_result:
+                partial_result[kpi.kpi] = np.empty((0, len(kpi.values)))
+            partial_result[kpi.kpi] = np.vstack([partial_result[kpi.kpi], kpi.values])
+
+        # Apply operations
+        for operation in dict["operations_f"]:
+            column = operation["column"]
+            value = operation["value"]
+            partial_result[column] = partial_result[column][partial_result[column] == value]
+
+        # Set globals for involved KPIs
+        involved_kpis = partial_result.keys()
+        for base_kpi in involved_kpis:
+            globals()[base_kpi] = partial_result[base_kpi]
+
+        # Evaluate the formula
+        formula = dict["formula"]
+        results = ne.evaluate(formula)
+
+        # Aggregate the result
+        aggregation = dict["agg"]
+        out = getattr(np, aggregation)(results, axis=1)
+
+        time_aggregation = request.time_aggregation
+        value = getattr(np, time_aggregation)(out)
+
+        response = RealTimeKPIResponse(label=request.start_date, value=value)
+
+        return response
+        
 
     async def send_real_time_result(self, response: RealTimeKPIResponse):
         """
