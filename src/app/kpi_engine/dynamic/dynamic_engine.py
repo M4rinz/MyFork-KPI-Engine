@@ -289,8 +289,6 @@ def compute(request: KPIRequest) -> KPIResponse:
     except Exception as e:
         return KPIResponse(message=repr(e), value=-1)
 
-    print(result)
-
     # aggregated on time
     result = finalize_mo(result, partial_result, request.time_aggregation)
 

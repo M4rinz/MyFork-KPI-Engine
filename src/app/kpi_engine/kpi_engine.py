@@ -10,6 +10,7 @@ from aiokafka import AIOKafkaConsumer
 from src.app.models.real_time_kpi import RealTimeKPI
 from src.app.models.requests.gui import RealTimeKPIRequest
 from src.app.models.responses.gui import RealTimeKPIResponse
+from src.app.utils.kafka_admin import delete_kafka_topic
 
 
 class KPIEngine:
@@ -19,9 +20,9 @@ class KPIEngine:
         self._topic = topic
         self._port = port
         self._servers = servers
-        self.consumer = KPIEngine.create_consumer(topic, port, servers)
+        self.consumer = self.create_consumer()
         self.websocket = None
-        # self.websocket = KPIEngine.create_websocket()
+        # self.websocket = create_websocket()
         KPIEngine.instance = self
         print(
             "KPI Engine initialized: created consumer. Topic: ",
@@ -32,8 +33,7 @@ class KPIEngine:
             servers,
         )
 
-    @staticmethod
-    def create_consumer(topic, port, servers):
+    def create_consumer(self):
         def decode_message(message):
             return [
                 RealTimeKPI.from_json(json.loads(item))
@@ -41,9 +41,9 @@ class KPIEngine:
             ]
 
         return AIOKafkaConsumer(
-            topic,
-            bootstrap_servers=f"{servers}:{port}",
-            value_deserializer=decode_message,
+            self._topic,
+            bootstrap_servers=f"{self._servers}:{self._port}",
+            # value_deserializer=decode_message,
             auto_offset_reset="earliest",
         )
 
@@ -64,10 +64,10 @@ class KPIEngine:
                 print("Consumed message: ", real_time_kpis)
 
                 # compute real time kpis
-                result = self.compute_real_time(real_time_kpis, request)
-                print(result)
+                _ = self.compute_real_time(real_time_kpis, request)
 
                 # send the computed result to the GUI via websocket
+                # await self.send_real_time_result(real_time_response)
 
         except Exception as e:
             print("Error in consumer: ", e)
@@ -76,7 +76,7 @@ class KPIEngine:
 
     def compute_real_time(
         self, real_time_kpis: list[RealTimeKPI], request: RealTimeKPIRequest
-    ):
+    ) -> RealTimeKPIResponse:
         # add kpis to partial results
         # compute kpi in real time aggregating everything
         pass
@@ -100,6 +100,8 @@ class KPIEngine:
             if self.consumer:
                 await self.consumer.stop()
                 print("Kafka consumer stopped.")
+
+            await delete_kafka_topic(self._topic, f"{self._servers}:{self._topic}")
 
             if self.websocket:
                 await self.websocket.close()

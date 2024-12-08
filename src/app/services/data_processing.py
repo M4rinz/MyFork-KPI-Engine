@@ -4,7 +4,6 @@ from src.app.models.requests.data_processing import KPIStreamingRequest
 
 def connect_to_publisher(kpi_streaming_request: KPIStreamingRequest):
     try:
-        print("Streaming request: ", kpi_streaming_request.to_json())
         response = requests.post(
             "http://data-preprocessing-container:8003/real-time/start",
             data=kpi_streaming_request.to_json(),

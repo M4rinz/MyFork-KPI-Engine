@@ -9,7 +9,7 @@ from src.app.kpi_engine.kpi_engine import KPIEngine
 from src.app.kpi_engine.regexp import prepare_for_real_time
 from src.app.models.requests.data_processing import KPIStreamingRequest
 from src.app.models.requests.gui import RealTimeKPIRequest
-from src.app.models.responses.gui import RealTimeKPIResponse
+from src.app.models.responses.gui import RealTimeResponse
 from src.app.services.data_processing import connect_to_publisher
 from src.app.utils.kafka_admin import delete_kafka_topic
 
@@ -24,21 +24,24 @@ KAFKA_SERVER = os.getenv("KAFKA_SERVER")
 KAFKA_PORT = os.getenv("KAFKA_PORT")
 
 
-@router.post("/start", response_model=RealTimeKPIResponse)
-async def real_time_session(request: RealTimeKPIRequest) -> RealTimeKPIResponse:
+@router.post("/start", response_model=RealTimeResponse)
+async def real_time_session(request: RealTimeKPIRequest) -> RealTimeResponse:
     global consumer_task, stop_event, kpi_engine
 
     if consumer_task and not consumer_task.done():
-        return RealTimeKPIResponse(
+        return RealTimeResponse(
             message="A real-time session is already running.", status=400
         )
 
     stop_event.clear()
 
-    kpis = prepare_for_real_time(request.name)
+    involved_kpis, evaluable_formula = prepare_for_real_time(request.name)
+
+    print("Involved KPIs:", involved_kpis)
+    print("Evaluable Formula:", evaluable_formula)
 
     kpi_streaming_request = KPIStreamingRequest(
-        kpis=kpis,
+        kpis=involved_kpis,
         machines=request.machines,
         operations=request.operations,
     )
@@ -55,29 +58,25 @@ async def real_time_session(request: RealTimeKPIRequest) -> RealTimeKPIResponse:
         print("Consumer started successfully")
     except Exception as e:
         print(f"Error starting consumer: {e}")
-        return RealTimeKPIResponse(
+        return RealTimeResponse(
             message=f"Error starting consumer: {str(e)}", status=500
         )
 
     consumer_task = asyncio.create_task(kpi_engine.consume(request, stop_event))
 
-    return RealTimeKPIResponse(message="Real-time session started", status=200)
+    return RealTimeResponse(message="Real-time session started", status=200)
 
 
-@router.get("/stop", response_model=RealTimeKPIResponse)
-async def stop_consumer() -> RealTimeKPIResponse:
+@router.get("/stop", response_model=RealTimeResponse)
+async def stop_consumer() -> RealTimeResponse:
     """Stop the Kafka consumer."""
     global stop_event, consumer_task
 
     if consumer_task is None or kpi_engine is None:
-        return RealTimeKPIResponse(
-            message="The consumer has not started yet.", status=400
-        )
+        return RealTimeResponse(message="The consumer has not started yet.", status=400)
 
     if consumer_task.done():
-        return RealTimeKPIResponse(
-            message="The consumer has already stopped.", status=400
-        )
+        return RealTimeResponse(message="The consumer has already stopped.", status=400)
 
     stop_event.set()  # Signal the task to stop
 
@@ -87,7 +86,7 @@ async def stop_consumer() -> RealTimeKPIResponse:
     # Close all connections
     await kpi_engine.stop()
 
-    return RealTimeKPIResponse(
+    return RealTimeResponse(
         message="Real-time session successfully stopped", status=200
     )
 
