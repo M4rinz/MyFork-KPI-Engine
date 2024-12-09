@@ -130,6 +130,7 @@ class KPIEngine:
                 raise RuntimeError("WebSocket is not connected.")
 
             # Convert the response to JSON and send it
+
             await self.websocket.send(response.to_json())
             print("Sent real-time KPI result to GUI:", response.to_json())
         except Exception as e:
@@ -154,3 +155,53 @@ class KPIEngine:
 
         except Exception as e:
             print(f"Error stopping connections: {e}")
+
+
+#checking machine and string
+
+def check_machine_operation(machines,operations):
+
+    if isinstance(machines,str):
+        #call the knowledge base
+        try:
+            macchine=get_closest_instances(machines)
+            macchine=macchine['instances']
+        except Exception as e:
+            return KPIResponse(message=repr(e), value=-1)
+
+        if len(macchine)!=0 and (len(operations)!=0):
+
+            if len(macchine)==len(operations):
+                return macchine,operations
+            elif len(macchine)<(len(operations)!=0):
+                return KPIResponse(
+                message="Invalid number of machines and operations", value=-1
+            )
+            elif len(macchine)>(len(operations)!=0):
+                #facciamo padding con independent
+                i=len(operations)
+                for i in range(len(operations),len(macchine)):
+                    operations.append('independent')
+                if len(macchine)==len(operations):
+                    return macchine,operations
+
+                else:
+                    return KPIResponse(
+                message="Invalid number of machines and operations", value=-1
+            )
+
+
+        else:
+            return macchine,operations
+
+
+    elif len(machines)!=0 and len(operations)!=0:
+        #check if they are of the same lenght
+        if len(machines)!=len(operations):
+            return KPIResponse(
+                message="Invalid number of machines and operations", value=-1
+            )
+        else:
+            return machines,operations
+
+    return machines, operations
