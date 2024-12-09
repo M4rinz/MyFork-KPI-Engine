@@ -3,7 +3,7 @@ from unittest.mock import MagicMock, patch
 
 import numpy as np
 import random
-from src.app.kpi_engine.dynamic_calc import (
+from src.app.kpi_engine.dynamic.dynamic_engine import (
     A,
     S,
     R,
@@ -14,7 +14,7 @@ from src.app.kpi_engine.dynamic_calc import (
     query_DB,
     dynamic_kpi,
 )
-from src.app.kpi_engine.exceptions import (
+from src.app.models.exceptions import (
     InvalidFormulaReferenceException,
     EmptyQueryException,
     InvalidBinaryOperatorException,
@@ -36,7 +36,7 @@ class TestFunctions(unittest.TestCase):
         self.engine = MagicMock()
         self.request = MagicMock()
 
-    @patch("src.app.kpi_engine.dynamic_calc.query_DB")
+    @patch("src.app.kpi_engine.dynamic.dynamic_engine.query_DB")
     def test_dynamic_kpi(self, mock_query_DB):
         mock_query_DB.return_value = (np.array([[1, 2], [3, 4]]), None)
         result = dynamic_kpi(
@@ -65,7 +65,7 @@ class TestFunctions(unittest.TestCase):
         with self.assertRaises(InvalidBinaryOperatorException):
             S("S°%°key1,°key2", self.partial_result)
 
-    @patch("src.app.kpi_engine.dynamic_calc.query_DB")
+    @patch("src.app.kpi_engine.dynamic.dynamic_engine.query_DB")
     def test_R(self, mock_query_DB):
         mock_query_DB.return_value = (np.zeros((2, 2)), None)
 
@@ -87,7 +87,7 @@ class TestFunctions(unittest.TestCase):
                 self.request,
             )
 
-    @patch("src.app.kpi_engine.dynamic_calc.query_DB")
+    @patch("src.app.kpi_engine.dynamic.dynamic_engine.query_DB")
     def test_D(self, mock_query_DB):
         mock_query_DB.return_value = (np.array([[1, 2], [3, 4]]), np.array([[5, 6]]))
         random.seed(1)
@@ -150,7 +150,7 @@ class TestQueryDB(unittest.TestCase):
             status_code=200,
         )
 
-    @patch("src.app.kpi_engine.dynamic_calc.requests.get")
+    @patch("src.app.kpi_engine.dynamic.dynamic_engine.requests.get")
     def test_valid_kpi_and_query(self, mock_get):
         kpi = "D°consumption_sum"
 
@@ -170,7 +170,7 @@ class TestQueryDB(unittest.TestCase):
         with self.assertRaises(ValueError):
             query_DB(kpi, self.request)
 
-    @patch("src.app.kpi_engine.dynamic_calc.requests.get")
+    @patch("src.app.kpi_engine.dynamic.dynamic_engine.requests.get")
     def test_empty_query_result(self, mock_get):
         mock_get.requests_return_value = self.MockResponse(
             data={"data": []}, status_code=200
@@ -179,7 +179,7 @@ class TestQueryDB(unittest.TestCase):
         with self.assertRaises(EmptyQueryException):
             query_DB(kpi, self.request)
 
-    @patch("src.app.kpi_engine.dynamic_calc.requests.get")
+    @patch("src.app.kpi_engine.dynamic.dynamic_engine.requests.get")
     def test_step_split_with_remainder(self, mock_get):
         self.request.step = 3
         kpi = "D°consumption_sum"

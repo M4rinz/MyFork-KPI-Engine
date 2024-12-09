@@ -25,3 +25,8 @@ class InvalidKPINameException(Exception):
 class KPIFormulaNotFoundException(Exception):
     def __init__(self, message="KPI formula not found"):
         super().__init__(message)
+
+
+class DivisionByZeroException(Exception):
+    def __init__(self, message="You have encountered a division by zero"):
+        super().__init__(message)
