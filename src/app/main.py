@@ -1,21 +1,30 @@
 # app/main.py
 import os
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 import uvicorn
-#from src.app.api.router import api_router
-#from src.app.api.endpoints.real_time import shutdown_event
-from app.api.router import api_router
-from app.api.endpoints.real_time import shutdown_event
+from src.app.api.router import api_router
+from src.app.api.endpoints.real_time import shutdown_event
 
-#app = FastAPI()
-#app.include_router(api_router)
+
+app = FastAPI()
+# Enable CORS
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+app.include_router(api_router)
 
 
 def start():
     """Starts the FastAPI application using Uvicorn.
 
     This function initializes and runs the FastAPI application with Uvicorn server.
-    The host is determined based on the environment variable `RUNNING_IN_DOCKER`. 
+    The host is determined based on the environment variable `RUNNING_IN_DOCKER`.
     If running inside Docker, the host is set to '0.0.0.0', otherwise, it defaults to '127.0.0.1'.
 
     :param None: This function takes no parameters.
@@ -30,7 +39,7 @@ def start():
     uvicorn.run("src.app.main:app", host=host, port=8008, reload=True)
 
 
-#@app.on_event("shutdown")
+@app.on_event("shutdown")
 async def shutdown():
     """Shuts down the application gracefully.
 
@@ -44,7 +53,7 @@ async def shutdown():
     await shutdown_event()
 
 
-#@app.get("/")
+@app.get("/")
 def read_root():
     """Handles the root GET endpoint.
     This endpoint returns a welcome message to confirm that the service is running.
@@ -57,7 +66,7 @@ def read_root():
     return {"Message": "Welcome to the KPI Engine!"}
 
 
-#@app.get("/health/")
+@app.get("/health/")
 def health_check():
     """Health check GET endpoint.
 

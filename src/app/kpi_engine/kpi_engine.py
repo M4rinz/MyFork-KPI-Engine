@@ -137,7 +137,7 @@ class KPIEngine:
             await self.consumer.stop()
 
     def compute_real_time(
-            self, real_time_kpis: list[RealTimeKPI], request: RealTimeKPIRequest
+        self, real_time_kpis: list[RealTimeKPI], request: RealTimeKPIRequest
     ) -> RealTimeKPIResponse:
         """
         Processes a batch of real-time KPI data to compute aggregated results based on the user-defined formula.
@@ -159,13 +159,17 @@ class KPIEngine:
             complete_name = f"{kpi.kpi}_{kpi.column}"
             if complete_name not in self.partial_result:
                 self.partial_result[complete_name] = np.empty((0, len(kpi.values)))
-            self.partial_result[complete_name] = np.vstack([self.partial_result[complete_name], kpi.values])
+            self.partial_result[complete_name] = np.vstack(
+                [self.partial_result[complete_name], kpi.values]
+            )
 
         # Apply operations
         for operation in self.evaluable_formula_info["operations_f"]:
             column = operation["column"]
             value = operation["value"]
-            self.partial_result[column] = self.partial_result[column][self.partial_result[column] == value]
+            self.partial_result[column] = self.partial_result[column][
+                self.partial_result[column] == value
+            ]
 
         # Set globals for involved KPIs
         involved_kpis = self.partial_result.keys()
@@ -198,6 +202,7 @@ class KPIEngine:
                 raise RuntimeError("WebSocket is not connected.")
 
             # Convert the response to JSON and send it
+
             await self.websocket.send(response.to_json())
             print("Sent real-time KPI result to GUI:", response.to_json())
         except Exception as e:
