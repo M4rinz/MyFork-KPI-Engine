@@ -16,7 +16,7 @@ class KPIRequest(BaseModel):
     """
 
     name: str
-    machines: Union[list,str]
+    machines: Union[list, str]
     operations: list
     time_aggregation: str
     start_date: datetime

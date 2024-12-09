@@ -28,7 +28,5 @@ class KPIFormulaNotFoundException(Exception):
 
 
 class DivisionByZeroException(Exception):
-    def __init__(
-        self, message="You have encountered a division by zero"
-    ):
+    def __init__(self, message="You have encountered a division by zero"):
         super().__init__(message)
