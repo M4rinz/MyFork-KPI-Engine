@@ -1,0 +1,425 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../../">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>app.kpi_engine.regexp &mdash; KPI Engine  documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=80d5e7a1" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/theme.css?v=e59714d7" />
+
+  
+      <script src="../../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../../_static/documentation_options.js?v=5929fcd5"></script>
+      <script src="../../../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../../index.html" class="icon icon-home">
+            KPI Engine
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../modules.html">app</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">KPI Engine</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">app.kpi_engine.regexp</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for app.kpi_engine.regexp</h1><div class="highlight"><pre>
+<span></span><span class="c1"># this clean the formulas that we get from the KB</span>
+<span class="kn">import</span> <span class="nn">re</span>
+
+<span class="c1">#from src.app.models import exceptions</span>
+<span class="c1">#from src.app.services.knowledge_base import get_closest_kpi_formula, get_kpi_formula</span>
+
+<span class="kn">from</span> <span class="nn">app.models</span> <span class="kn">import</span> <span class="n">exceptions</span>
+<span class="kn">from</span> <span class="nn">app.services.knowledge_base</span> <span class="kn">import</span> <span class="n">get_closest_kpi_formula</span><span class="p">,</span> <span class="n">get_kpi_formula</span>
+
+
+<div class="viewcode-block" id="clean_placeholders">
+<a class="viewcode-back" href="../../../app.kpi_engine.html#app.kpi_engine.regexp.clean_placeholders">[docs]</a>
+<span class="k">def</span> <span class="nf">clean_placeholders</span><span class="p">(</span><span class="n">formulas</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Cleans the formulas by removing the placeholders used in the Knowledge Base (KB) and replacing them with specific</span>
+<span class="sd">    operations such as &#39;idle&#39;, &#39;working&#39;, &#39;offline&#39;. When one of these operations is encountered, it is saved in a separate list.</span>
+<span class="sd">    </span>
+<span class="sd">    The function iterates over each formula in the `formulas` dictionary and replaces the placeholders with their associated operations.</span>
+<span class="sd">    The recognized placeholders are related to the activity states (idle, working, offline) and general placeholders like &quot;°T°m°o°&quot;.</span>
+<span class="sd">    </span>
+<span class="sd">    :param formulas: A dictionary containing the formulas to clean. The keys are the names of the formulas, and the values are the formula strings.</span>
+<span class="sd">    :type formulas: dict[str, str]</span>
+<span class="sd">    </span>
+<span class="sd">    :return: A tuple with two elements:</span>
+<span class="sd">        - A dictionary containing the cleaned formulas, where the keys are the names of the formulas and the values are the formulas with placeholders removed.</span>
+<span class="sd">        - A list containing the detected operations (e.g., &quot;idle&quot;, &quot;working&quot;, &quot;offline&quot;).</span>
+<span class="sd">    :rtype: tuple[dict[str, str], list[str]]</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">cleaned_formulas</span> <span class="o">=</span> <span class="p">{}</span>
+    <span class="n">operations</span> <span class="o">=</span> <span class="p">[]</span>
+
+    <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">formula</span> <span class="ow">in</span> <span class="n">formulas</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+
+        <span class="c1"># Search and remove specific placeholders</span>
+        <span class="n">placeholders</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="s2">&quot;°T°m°idle°&quot;</span><span class="p">:</span> <span class="s2">&quot;idle&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;°T°m°working°&quot;</span><span class="p">:</span> <span class="s2">&quot;working&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;°T°m°offline°&quot;</span><span class="p">:</span> <span class="s2">&quot;offline&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;°T°M°idle°&quot;</span><span class="p">:</span> <span class="s2">&quot;idle&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;°T°M°working°&quot;</span><span class="p">:</span> <span class="s2">&quot;working&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;°T°M°offline°&quot;</span><span class="p">:</span> <span class="s2">&quot;offline&quot;</span><span class="p">,</span>
+        <span class="p">}</span>
+
+        <span class="k">for</span> <span class="n">placeholder</span><span class="p">,</span> <span class="n">operation</span> <span class="ow">in</span> <span class="n">placeholders</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="k">if</span> <span class="n">placeholder</span> <span class="ow">in</span> <span class="n">formula</span><span class="p">:</span>
+                <span class="n">operations</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">operation</span><span class="p">)</span>
+                <span class="n">formula</span> <span class="o">=</span> <span class="n">formula</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="n">placeholder</span><span class="p">,</span> <span class="s2">&quot;&quot;</span><span class="p">)</span>
+
+        <span class="c1"># Remove other placeholders</span>
+        <span class="n">formula</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">sub</span><span class="p">(</span><span class="sa">r</span><span class="s2">&quot;°t°m°o°&quot;</span><span class="p">,</span> <span class="s2">&quot;&quot;</span><span class="p">,</span> <span class="n">formula</span><span class="p">)</span>
+        <span class="n">formula</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">sub</span><span class="p">(</span><span class="sa">r</span><span class="s2">&quot;°T°m°o°&quot;</span><span class="p">,</span> <span class="s2">&quot;&quot;</span><span class="p">,</span> <span class="n">formula</span><span class="p">)</span>
+
+        <span class="c1"># Save the cleaned formula with no wrapping spaces</span>
+        <span class="n">cleaned_formulas</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="n">formula</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span>
+
+    <span class="k">return</span> <span class="n">cleaned_formulas</span><span class="p">,</span> <span class="n">operations</span></div>
+
+
+
+<div class="viewcode-block" id="remove_aggregations">
+<a class="viewcode-back" href="../../../app.kpi_engine.html#app.kpi_engine.regexp.remove_aggregations">[docs]</a>
+<span class="k">def</span> <span class="nf">remove_aggregations</span><span class="p">(</span><span class="n">result</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Removes the A° aggregations from the formula and saves the outermost one.</span>
+<span class="sd">    If there are binary operations, it transforms them into a numexpr-parsable formula.</span>
+
+<span class="sd">    :param result: A dictionary containing the formula to clean. It includes:</span>
+<span class="sd">        - &#39;formula&#39;: The formula string to clean.</span>
+<span class="sd">        - &#39;agg&#39;: (Optional) The type of aggregation function found in the formula.</span>
+<span class="sd">    :type result: dict[str, str]</span>
+<span class="sd">    </span>
+<span class="sd">    :return: The updated dictionary containing the cleaned formula with the outermost aggregation removed, and the aggregation type saved.</span>
+<span class="sd">    :rtype: dict[str, str]</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">formula</span> <span class="o">=</span> <span class="n">result</span><span class="p">[</span><span class="s2">&quot;formula&quot;</span><span class="p">]</span>
+
+    <span class="n">formula</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">sub</span><span class="p">(</span><span class="sa">r</span><span class="s2">&quot;°t&quot;</span><span class="p">,</span> <span class="s2">&quot;&quot;</span><span class="p">,</span> <span class="n">formula</span><span class="p">)</span>
+    <span class="n">formula</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">sub</span><span class="p">(</span><span class="sa">r</span><span class="s2">&quot;°mo&quot;</span><span class="p">,</span> <span class="s2">&quot;&quot;</span><span class="p">,</span> <span class="n">formula</span><span class="p">)</span>
+    <span class="c1"># replace with capital M to avoid matching max. min, ...</span>
+    <span class="n">formula</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">sub</span><span class="p">(</span><span class="sa">r</span><span class="s2">&quot;A°m&quot;</span><span class="p">,</span> <span class="s2">&quot;A°M&quot;</span><span class="p">,</span> <span class="n">formula</span><span class="p">)</span>
+    <span class="c1">#</span>
+    <span class="n">formula</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">sub</span><span class="p">(</span><span class="sa">r</span><span class="s2">&quot;°m&quot;</span><span class="p">,</span> <span class="s2">&quot;&quot;</span><span class="p">,</span> <span class="n">formula</span><span class="p">)</span>
+
+    <span class="n">index</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="s2">&quot;inf&quot;</span><span class="p">)</span>
+
+    <span class="n">agg_functions</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;A°sum[&quot;</span><span class="p">,</span> <span class="s2">&quot;A°Mean[&quot;</span><span class="p">,</span> <span class="s2">&quot;A°max[&quot;</span><span class="p">,</span> <span class="s2">&quot;A°Min[&quot;</span><span class="p">,</span> <span class="s2">&quot;A°var[&quot;</span><span class="p">,</span> <span class="s2">&quot;A°std[&quot;</span><span class="p">]</span>
+
+    <span class="n">first_aggregation</span> <span class="o">=</span> <span class="kc">None</span>
+
+    <span class="c1"># until there are aggregations in the formula</span>
+    <span class="k">while</span> <span class="nb">any</span><span class="p">(</span><span class="n">agg_func</span> <span class="ow">in</span> <span class="n">formula</span> <span class="k">for</span> <span class="n">agg_func</span> <span class="ow">in</span> <span class="n">agg_functions</span><span class="p">):</span>
+        <span class="c1"># do it for every possible aggregation sice we don&#39;t know the outermost one</span>
+        <span class="n">start_index</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span>
+        <span class="k">for</span> <span class="n">agg_func</span> <span class="ow">in</span> <span class="n">agg_functions</span><span class="p">:</span>
+            <span class="n">start_index</span> <span class="o">=</span> <span class="n">formula</span><span class="o">.</span><span class="n">find</span><span class="p">(</span><span class="n">agg_func</span><span class="p">)</span>
+            <span class="c1"># if we find the aggregation in the formula</span>
+            <span class="k">if</span> <span class="n">start_index</span> <span class="o">!=</span> <span class="o">-</span><span class="mi">1</span><span class="p">:</span>
+                <span class="c1"># if the first aggregation has not been found, or if the current one is before the first one</span>
+                <span class="k">if</span> <span class="n">first_aggregation</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="n">start_index</span> <span class="o">&lt;</span> <span class="n">index</span><span class="p">:</span>
+                    <span class="n">index</span> <span class="o">=</span> <span class="n">start_index</span>
+                    <span class="c1"># first aggregation is the first match</span>
+                    <span class="n">first_aggregation</span> <span class="o">=</span> <span class="n">agg_func</span><span class="o">.</span><span class="n">strip</span><span class="p">(</span><span class="s2">&quot;A°[&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span>
+                <span class="k">break</span>
+
+        <span class="c1"># We interrupt immediately if we don&#39;t find anything</span>
+        <span class="k">if</span> <span class="n">start_index</span> <span class="o">==</span> <span class="o">-</span><span class="mi">1</span><span class="p">:</span>
+            <span class="k">break</span>
+
+        <span class="c1"># we initialize a counter for the [ and ] in particular we increase if we find a [ and decrease if ] so we</span>
+        <span class="c1"># delete the aggregation and the corresponding []</span>
+        <span class="n">depth</span> <span class="o">=</span> <span class="mi">1</span>
+        <span class="n">end_index</span> <span class="o">=</span> <span class="n">start_index</span> <span class="o">+</span> <span class="nb">len</span><span class="p">(</span><span class="n">agg_func</span><span class="p">)</span>
+
+        <span class="c1"># Here the implementation of the logic explained before</span>
+        <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">char</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">formula</span><span class="p">[</span><span class="n">end_index</span><span class="p">:]):</span>
+            <span class="k">match</span> <span class="n">char</span><span class="p">:</span>
+                <span class="k">case</span> <span class="s2">&quot;[&quot;</span><span class="p">:</span>
+                    <span class="n">depth</span> <span class="o">+=</span> <span class="mi">1</span>
+                <span class="k">case</span> <span class="s2">&quot;]&quot;</span><span class="p">:</span>
+                    <span class="n">depth</span> <span class="o">-=</span> <span class="mi">1</span>
+
+            <span class="k">if</span> <span class="n">depth</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="n">end_index</span> <span class="o">+=</span> <span class="n">i</span>
+                <span class="k">break</span>
+
+        <span class="c1"># here we check if the ] is the last char of the formula then we return a new expression that starts from</span>
+        <span class="c1">#  the next char after A°aggr[ and end at the last char before the ] and we have two cases :</span>
+        <span class="c1"># the first if the ] is at the end of the expression</span>
+        <span class="c1"># the second if th ] is in the middle of the expression</span>
+        <span class="k">if</span> <span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">formula</span><span class="p">)</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span> <span class="o">==</span> <span class="n">end_index</span><span class="p">:</span>
+            <span class="n">formula</span> <span class="o">=</span> <span class="p">(</span>
+                <span class="n">formula</span><span class="p">[:</span><span class="n">start_index</span><span class="p">]</span> <span class="o">+</span> <span class="n">formula</span><span class="p">[</span><span class="n">start_index</span> <span class="o">+</span> <span class="nb">len</span><span class="p">(</span><span class="n">agg_func</span><span class="p">)</span> <span class="p">:</span> <span class="n">end_index</span><span class="p">]</span>
+            <span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">formula</span> <span class="o">=</span> <span class="p">(</span>
+                <span class="n">formula</span><span class="p">[:</span><span class="n">start_index</span><span class="p">]</span>
+                <span class="o">+</span> <span class="n">formula</span><span class="p">[</span><span class="n">start_index</span> <span class="o">+</span> <span class="nb">len</span><span class="p">(</span><span class="n">agg_func</span><span class="p">)</span> <span class="p">:</span> <span class="n">end_index</span><span class="p">]</span>
+                <span class="o">+</span> <span class="n">formula</span><span class="p">[</span><span class="n">end_index</span> <span class="o">+</span> <span class="mi">1</span> <span class="p">:]</span>
+            <span class="p">)</span>
+
+        <span class="c1"># remove external spaces</span>
+        <span class="n">formula</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">formula</span><span class="o">.</span><span class="n">split</span><span class="p">())</span>
+
+    <span class="n">result</span><span class="p">[</span><span class="s2">&quot;formula&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">formula</span>
+    <span class="n">result</span><span class="p">[</span><span class="s2">&quot;agg&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">first_aggregation</span>
+    <span class="k">return</span> <span class="n">result</span></div>
+
+
+
+<div class="viewcode-block" id="to_evaluable">
+<a class="viewcode-back" href="../../../app.kpi_engine.html#app.kpi_engine.regexp.to_evaluable">[docs]</a>
+<span class="k">def</span> <span class="nf">to_evaluable</span><span class="p">(</span><span class="n">formula</span><span class="p">:</span> <span class="nb">str</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Transforms the expression in a parsable form for the numexpr library.</span>
+<span class="sd">    It transforms the binary operations in a parsable form for the numexpr library.</span>
+
+<span class="sd">    The function looks for specific operator patterns in the formula, converts them to the corresponding Python operators, </span>
+<span class="sd">    and handles constants (e.g., &quot;C°[number]°&quot;) by replacing them with the actual numeric value.</span>
+
+<span class="sd">    :param formula: The formula string to be transformed into a numexpr-compatible format.</span>
+<span class="sd">    :type formula: str</span>
+<span class="sd">    </span>
+<span class="sd">    :return: The transformed formula as a string, formatted for numexpr evaluation.</span>
+<span class="sd">    :rtype: str</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="c1"># Map of the possible operator that we can find</span>
+    <span class="n">operator_map</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;S°/&quot;</span><span class="p">,</span> <span class="s2">&quot;S°*&quot;</span><span class="p">,</span> <span class="s2">&quot;S°+&quot;</span><span class="p">,</span> <span class="s2">&quot;S°-&quot;</span><span class="p">,</span> <span class="s2">&quot;S°**&quot;</span><span class="p">]</span>
+
+    <span class="c1"># we check for the possible S° operator, and we start from the outer one</span>
+
+    <span class="k">while</span> <span class="nb">any</span><span class="p">(</span><span class="n">op</span> <span class="ow">in</span> <span class="n">formula</span> <span class="k">for</span> <span class="n">op</span> <span class="ow">in</span> <span class="n">operator_map</span><span class="p">):</span>
+        <span class="n">start_index</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span>
+        <span class="k">for</span> <span class="n">op</span> <span class="ow">in</span> <span class="n">operator_map</span><span class="p">:</span>
+            <span class="n">start_index</span> <span class="o">=</span> <span class="n">formula</span><span class="o">.</span><span class="n">find</span><span class="p">(</span><span class="n">op</span> <span class="o">+</span> <span class="s2">&quot;[&quot;</span><span class="p">)</span>
+            <span class="nb">print</span><span class="p">(</span><span class="n">start_index</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">start_index</span> <span class="o">!=</span> <span class="o">-</span><span class="mi">1</span><span class="p">:</span>
+                <span class="k">break</span>
+
+        <span class="c1"># if we don&#39;t find an operator</span>
+        <span class="k">if</span> <span class="n">start_index</span> <span class="o">==</span> <span class="o">-</span><span class="mi">1</span><span class="p">:</span>
+            <span class="k">break</span>
+
+        <span class="c1"># we initialize a counter for the  [] parenthesis in increase the counter by one if we find [ and decrease</span>
+        <span class="c1"># by one if we find a ] so when we find a ; and counter ==1 we substitute it with the operator, and then</span>
+        <span class="c1"># we put () instead []</span>
+        <span class="n">depth</span> <span class="o">=</span> <span class="mi">1</span>
+        <span class="n">end_index</span> <span class="o">=</span> <span class="n">start_index</span> <span class="o">+</span> <span class="nb">len</span><span class="p">(</span><span class="n">op</span><span class="p">)</span> <span class="o">+</span> <span class="mi">1</span>
+        <span class="n">semicolon_index</span> <span class="o">=</span> <span class="kc">None</span>
+
+        <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">char</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span>
+            <span class="n">formula</span><span class="p">[</span><span class="n">start_index</span> <span class="o">+</span> <span class="nb">len</span><span class="p">(</span><span class="n">op</span><span class="p">)</span> <span class="o">+</span> <span class="mi">1</span> <span class="p">:],</span> <span class="n">start</span><span class="o">=</span><span class="n">start_index</span> <span class="o">+</span> <span class="nb">len</span><span class="p">(</span><span class="n">op</span><span class="p">)</span> <span class="o">+</span> <span class="mi">1</span>
+        <span class="p">):</span>
+            <span class="k">match</span> <span class="n">char</span><span class="p">:</span>
+                <span class="k">case</span> <span class="s2">&quot;[&quot;</span><span class="p">:</span>
+                    <span class="n">depth</span> <span class="o">+=</span> <span class="mi">1</span>
+                <span class="k">case</span> <span class="s2">&quot;]&quot;</span><span class="p">:</span>
+                    <span class="n">depth</span> <span class="o">-=</span> <span class="mi">1</span>
+                <span class="k">case</span> <span class="s2">&quot;;&quot;</span> <span class="k">if</span> <span class="n">depth</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+                    <span class="n">semicolon_index</span> <span class="o">=</span> <span class="n">i</span>
+
+            <span class="k">if</span> <span class="n">depth</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="n">end_index</span> <span class="o">=</span> <span class="n">i</span>
+                <span class="k">break</span>
+
+        <span class="c1"># substitute the most internal block with the operator</span>
+        <span class="k">if</span> <span class="n">semicolon_index</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="c1"># substitute the semicolon with the operator</span>
+            <span class="n">formula</span> <span class="o">=</span> <span class="p">(</span>
+                <span class="n">formula</span><span class="p">[:</span><span class="n">start_index</span><span class="p">]</span>
+                <span class="o">+</span> <span class="s2">&quot;(&quot;</span>
+                <span class="o">+</span> <span class="n">formula</span><span class="p">[</span><span class="n">start_index</span> <span class="o">+</span> <span class="nb">len</span><span class="p">(</span><span class="n">op</span><span class="p">)</span> <span class="o">+</span> <span class="mi">1</span> <span class="p">:</span> <span class="n">semicolon_index</span><span class="p">]</span>
+                <span class="o">+</span> <span class="sa">f</span><span class="s2">&quot; </span><span class="si">{</span><span class="n">op</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span><span class="si">}</span><span class="s2"> &quot;</span>
+                <span class="o">+</span> <span class="n">formula</span><span class="p">[</span><span class="n">semicolon_index</span> <span class="o">+</span> <span class="mi">1</span> <span class="p">:</span> <span class="n">end_index</span><span class="p">]</span>
+                <span class="o">+</span> <span class="s2">&quot;)&quot;</span>
+                <span class="o">+</span> <span class="n">formula</span><span class="p">[</span><span class="n">end_index</span> <span class="o">+</span> <span class="mi">1</span> <span class="p">:]</span>
+            <span class="p">)</span>
+
+    <span class="c1"># if we find a constant, remove C°[number]° with the number</span>
+    <span class="n">formula</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">sub</span><span class="p">(</span><span class="sa">r</span><span class="s2">&quot;C°(\d+)°&quot;</span><span class="p">,</span> <span class="sa">r</span><span class="s2">&quot;\1&quot;</span><span class="p">,</span> <span class="n">formula</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">formula</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span></div>
+
+
+
+<div class="viewcode-block" id="extract_names">
+<a class="viewcode-back" href="../../../app.kpi_engine.html#app.kpi_engine.regexp.extract_names">[docs]</a>
+<span class="k">def</span> <span class="nf">extract_names</span><span class="p">(</span><span class="n">expression</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Extracts the names from an expression. The function finds all alphanumeric sequences that represent </span>
+<span class="sd">    variable names and ignores pure numbers.</span>
+
+<span class="sd">    :param expression: The mathematical expression from which to extract variable names.</span>
+<span class="sd">    :type expression: str</span>
+<span class="sd">    </span>
+<span class="sd">    :return: A list of variable names extracted from the expression.</span>
+<span class="sd">    :rtype: list[str]</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="c1"># Pattern to find valid names: letters, numbers and underscore</span>
+    <span class="n">pattern</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">compile</span><span class="p">(</span><span class="sa">r</span><span class="s2">&quot;\b[a-zA-Z_]\w*\b&quot;</span><span class="p">)</span>  <span class="c1"># we don&#39;t mach pure numbers</span>
+    <span class="n">names</span> <span class="o">=</span> <span class="n">pattern</span><span class="o">.</span><span class="n">findall</span><span class="p">(</span><span class="n">expression</span><span class="p">)</span>
+
+    <span class="c1"># we exclude the 100 value</span>
+    <span class="n">filtered_names</span> <span class="o">=</span> <span class="p">[</span><span class="n">name</span> <span class="k">for</span> <span class="n">name</span> <span class="ow">in</span> <span class="n">names</span> <span class="k">if</span> <span class="ow">not</span> <span class="n">name</span><span class="o">.</span><span class="n">isdigit</span><span class="p">()]</span>
+    <span class="k">return</span> <span class="n">filtered_names</span></div>
+
+
+
+<div class="viewcode-block" id="prepare_for_real_time">
+<a class="viewcode-back" href="../../../app.kpi_engine.html#app.kpi_engine.regexp.prepare_for_real_time">[docs]</a>
+<span class="k">def</span> <span class="nf">prepare_for_real_time</span><span class="p">(</span><span class="n">kpi_name</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="p">(</span><span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Retrieves the formula for a given KPI name from the knowledge base (KB), cleans and transforms the formula </span>
+<span class="sd">    into a parsable form compatible with the numexpr library, and extracts the involved KPIs.</span>
+
+<span class="sd">    :param kpi_name: The name of the KPI for which to retrieve the formula and transform.</span>
+<span class="sd">    :type kpi_name: str</span>
+
+<span class="sd">    :return: A tuple containing:</span>
+<span class="sd">        - A list of KPI names that are involved in the formula.</span>
+<span class="sd">        - A dictionary containing the transformed formula, ready for numexpr evaluation.</span>
+<span class="sd">    :rtype: tuple[list[str], dict[str, str]]</span>
+
+<span class="sd">    :raises KPIFormulaNotFoundException: If no formula could be found for the given KPI name.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">response</span> <span class="o">=</span> <span class="n">get_kpi_formula</span><span class="p">(</span><span class="n">kpi_name</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">response</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="c1"># get the reference from the KB with the other method</span>
+            <span class="n">response</span> <span class="o">=</span> <span class="n">get_closest_kpi_formula</span><span class="p">(</span><span class="n">kpi_name</span><span class="p">)</span>
+            <span class="n">response</span> <span class="o">=</span> <span class="n">response</span><span class="p">[</span><span class="s2">&quot;formulas&quot;</span><span class="p">]</span>
+
+        <span class="n">cleaned_formulas</span><span class="p">,</span> <span class="n">operations</span> <span class="o">=</span> <span class="n">clean_placeholders</span><span class="p">(</span><span class="n">response</span><span class="p">)</span>
+        <span class="n">most_general_formula_key</span> <span class="o">=</span> <span class="nb">next</span><span class="p">(</span><span class="nb">iter</span><span class="p">(</span><span class="n">cleaned_formulas</span><span class="p">))</span>
+        <span class="n">formula</span> <span class="o">=</span> <span class="n">cleaned_formulas</span><span class="p">[</span><span class="n">most_general_formula_key</span><span class="p">]</span>  <span class="c1"># most general formula</span>
+        <span class="n">evaluable_formula</span> <span class="o">=</span> <span class="n">transform_formula</span><span class="p">(</span><span class="n">formula</span><span class="p">,</span> <span class="n">cleaned_formulas</span><span class="p">,</span> <span class="n">operations</span><span class="p">)</span>
+        <span class="n">involved_kpis</span> <span class="o">=</span> <span class="n">extract_names</span><span class="p">(</span><span class="n">evaluable_formula</span><span class="p">[</span><span class="s2">&quot;formula&quot;</span><span class="p">])</span>
+
+    <span class="k">except</span> <span class="n">exceptions</span><span class="o">.</span><span class="n">KPIFormulaNotFoundException</span><span class="p">()</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Error getting KPI database references: </span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="p">[],</span> <span class="kc">None</span>
+
+    <span class="k">return</span> <span class="n">involved_kpis</span><span class="p">,</span> <span class="n">evaluable_formula</span></div>
+
+
+
+<div class="viewcode-block" id="transform_formula">
+<a class="viewcode-back" href="../../../app.kpi_engine.html#app.kpi_engine.regexp.transform_formula">[docs]</a>
+<span class="k">def</span> <span class="nf">transform_formula</span><span class="p">(</span>
+    <span class="n">formula</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">formulas</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">],</span> <span class="n">operation_IWO</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Takes a formula and its sub formulas and transforms it in a parsable form for the numexpr library.</span>
+
+<span class="sd">    :param formula: The formula to be transformed.</span>
+<span class="sd">    :type formula: str</span>
+<span class="sd">    :param formulas: A dictionary of formulas, where the keys are formula names and the values are the actual formulas.</span>
+<span class="sd">    :type formulas: dict[str, str]</span>
+<span class="sd">    :param operation_IWO: A list of operations.</span>
+<span class="sd">    :type operation_IWO: list[str]</span>
+
+<span class="sd">    :return: A dictionary containing:</span>
+<span class="sd">        - &#39;formula&#39;: The transformed formula that can be evaluated by numexpr.</span>
+<span class="sd">        - &#39;operations_f&#39;: The operations found in the formula.</span>
+<span class="sd">    :rtype: dict[str, str]</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">result</span> <span class="o">=</span> <span class="p">{}</span>
+
+    <span class="c1"># substitution of the R° references with their formula in the formulas dict</span>
+    <span class="n">formula</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">sub</span><span class="p">(</span><span class="sa">r</span><span class="s2">&quot;R°(\w+)&quot;</span><span class="p">,</span> <span class="k">lambda</span> <span class="n">match</span><span class="p">:</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">formulas</span><span class="p">[</span><span class="n">match</span><span class="o">.</span><span class="n">group</span><span class="p">(</span><span class="mi">1</span><span class="p">)]</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">formula</span><span class="p">)</span>
+    <span class="c1"># remove the D° from the formula</span>
+    <span class="n">formula</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">sub</span><span class="p">(</span><span class="sa">r</span><span class="s2">&quot;D°(\w+)&quot;</span><span class="p">,</span> <span class="sa">r</span><span class="s2">&quot;\1&quot;</span><span class="p">,</span> <span class="n">formula</span><span class="p">)</span>
+
+    <span class="c1"># remove the spaces</span>
+    <span class="n">formula</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">formula</span><span class="o">.</span><span class="n">split</span><span class="p">())</span>
+    <span class="n">result</span><span class="p">[</span><span class="s2">&quot;formula&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">formula</span>
+    <span class="c1"># save in the result the operations idle working offline, if present</span>
+    <span class="n">result</span><span class="p">[</span><span class="s2">&quot;operations_f&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">operation_IWO</span>
+    <span class="c1"># remove the inner aggregations after saving the outermost one</span>
+    <span class="n">result</span> <span class="o">=</span> <span class="n">remove_aggregations</span><span class="p">(</span><span class="n">result</span><span class="p">)</span>
+
+    <span class="c1"># then if in the formula there are pairwise operation then transform in a parsable formula</span>
+    <span class="n">result</span><span class="p">[</span><span class="s2">&quot;formula&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">to_evaluable</span><span class="p">(</span><span class="n">result</span><span class="p">[</span><span class="s2">&quot;formula&quot;</span><span class="p">])</span>
+    <span class="k">return</span> <span class="n">result</span></div>
+
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2024, Maria Immacolata Colella, Fabrizio De Castelli, Marco Minniti, Filippo Alessandro Sandoval Villarreal.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>
