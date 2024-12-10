@@ -173,6 +173,7 @@
 </li>
 <li class="toctree-l2"><a class="reference internal" href="app.models.html#submodules">Submodules</a></li>
 <li class="toctree-l2"><a class="reference internal" href="app.models.html#module-app.models.exceptions">app.models.exceptions module</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="app.models.html#app.models.exceptions.DivisionByZeroException"><code class="docutils literal notranslate"><span class="pre">DivisionByZeroException</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="app.models.html#app.models.exceptions.EmptyQueryException"><code class="docutils literal notranslate"><span class="pre">EmptyQueryException</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="app.models.html#app.models.exceptions.InvalidBinaryOperatorException"><code class="docutils literal notranslate"><span class="pre">InvalidBinaryOperatorException</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="app.models.html#app.models.exceptions.InvalidFormulaReferenceException"><code class="docutils literal notranslate"><span class="pre">InvalidFormulaReferenceException</span></code></a></li>
@@ -295,7 +296,7 @@ It ensures that any necessary cleanup or shutdown processes are executed.</p>
 <span class="sig-prename descclassname"><span class="pre">app.main.</span></span><span class="sig-name descname"><span class="pre">start</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/app/main.html#start"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#app.main.start" title="Link to this definition"></a></dt>
 <dd><p>Starts the FastAPI application using Uvicorn.</p>
 <p>This function initializes and runs the FastAPI application with Uvicorn server.
-The host is determined based on the environment variable <cite>RUNNING_IN_DOCKER</cite>. 
+The host is determined based on the environment variable <cite>RUNNING_IN_DOCKER</cite>.
 If running inside Docker, the host is set to ‘0.0.0.0’, otherwise, it defaults to ‘127.0.0.1’.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>

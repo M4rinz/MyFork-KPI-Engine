@@ -9,21 +9,18 @@ class KPIRequest(BaseModel):
     """Represents the details of a KPI request, including the KPI name, machines, operations,
     aggregation function, and time range.
 
-    :param name: The name of the KPI to be calculated.
+    :param name: The name of the KPI to compute.
     :type name: str
-    :param machines: A list of machines involved in the KPI calculation.
-    :type machines: list
+    :param machines: A list of machines or a single machine associated with the KPI.
+    :type machines: Union[list, str]
     :param operations: A list of operations corresponding to the machines.
     :type operations: list
-    :param time_aggregation: The time aggregation function to be applied (e.g., 'daily', 'weekly').
+    :param time_aggregation: The time aggregation function to apply (e.g., 'daily', 'weekly').
     :type time_aggregation: str
-    :param start_date: The start date of the KPI calculation range.
+    :param start_date: The start date for the KPI calculation range.
     :type start_date: datetime
-    :param end_date: The end date of the KPI calculation range.
+    :param end_date: The end date for the KPI calculation range.
     :type end_date: datetime
-    :param step: The calculation step, representing the time intervals for aggregation.
-                 Must be a positive integer.
-    :type step: int
     """
 
     name: str
@@ -55,7 +52,7 @@ class KPIRequest(BaseModel):
 
         :param value: The list of machines.
         :type value: list
-        :raises ValueError: If machines is not a list.
+        :raises ValueError: If machines is not a list or a string.
         :return: The validated machines list.
         :rtype: list
         """

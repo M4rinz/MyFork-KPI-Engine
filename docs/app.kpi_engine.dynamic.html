@@ -100,25 +100,15 @@
 <dl class="py function">
 <dt class="sig sig-object py" id="app.kpi_engine.dynamic.dynamic_engine.A">
 <span class="sig-prename descclassname"><span class="pre">app.kpi_engine.dynamic.dynamic_engine.</span></span><span class="sig-name descname"><span class="pre">A</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">kpi</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">partial_result</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Any</span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">str</span></span></span><a class="reference internal" href="_modules/app/kpi_engine/dynamic/dynamic_engine.html#A"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#app.kpi_engine.dynamic.dynamic_engine.A" title="Link to this definition"></a></dt>
-<dd><p>Performs an aggregation operation on a KPI, applying it to the data. The available aggregation are: mean, sum, max, min, var, std.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><ul class="simple">
-<li><p><strong>kpi</strong> (<em>str</em>) – The key performance indicator (KPI) formula to process, typically in the form of a string.</p></li>
-<li><p><strong>partial_result</strong> (<em>dict</em><em>[</em><em>str</em><em>, </em><em>Any</em><em>]</em>) – A dictionary containing intermediate results for KPIs, used for aggregation.</p></li>
-<li><p><strong>kwargs</strong> (<em>dict</em><em>, </em><em>optional</em>) – Additional optional parameters that may be passed for extended functionality.</p></li>
-</ul>
-</dd>
-<dt class="field-even">Raises<span class="colon">:</span></dt>
-<dd class="field-even"><p><strong>ValueError</strong> – If the variable for aggregation is not found in the list of supported aggregations.</p>
-</dd>
-<dt class="field-odd">Returns<span class="colon">:</span></dt>
-<dd class="field-odd"><p>A string representing the key for the aggregated KPI result.</p>
-</dd>
-<dt class="field-even">Return type<span class="colon">:</span></dt>
-<dd class="field-even"><p>str</p>
-</dd>
-</dl>
+<dd><p>Performs an aggregation operation on a KPI, applying it to the data. The available aggregation are: mean, sum, max, min, var, std.    :param kpi: The KPI formula to process, typically in the form of a string.
+:type kpi: str
+:param partial_result: A dictionary containing intermediate results for KPIs, used for aggregation.
+:type partial_result: dict[str, Any]
+:param kwargs: Additional optional parameters that may be passed for extended functionality.
+:type kwargs: dict, optional
+:raises ValueError: If the variable for aggregation is not found in the list of supported aggregations.
+:return: A string representing the key for the aggregated KPI result.
+:rtype: str</p>
 </dd></dl>
 
 <dl class="py function">
@@ -215,14 +205,64 @@
 </dd></dl>
 
 <dl class="py function">
+<dt class="sig sig-object py" id="app.kpi_engine.dynamic.dynamic_engine.build_query">
+<span class="sig-prename descclassname"><span class="pre">app.kpi_engine.dynamic.dynamic_engine.</span></span><span class="sig-name descname"><span class="pre">build_query</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">request</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="app.models.requests.html#app.models.requests.rag.KPIRequest" title="app.models.requests.rag.KPIRequest"><span class="pre">KPIRequest</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">after_last_underscore</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">before_last_underscore</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/app/kpi_engine/dynamic/dynamic_engine.html#build_query"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#app.kpi_engine.dynamic.dynamic_engine.build_query" title="Link to this definition"></a></dt>
+<dd><p>Constructs an SQL query based on the KPI request parameters.
+Generates a query to retrieve real-time KPI data, applying filters for machines, 
+operations, and a time range. Dynamically adapts to the presence of machines 
+or operations in the request.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>request</strong> (<a class="reference internal" href="app.models.requests.html#app.models.requests.rag.KPIRequest" title="app.models.requests.rag.KPIRequest"><em>KPIRequest</em></a>) – Details of the KPI request, including machines, operations, 
+start date, and end date.</p></li>
+<li><p><strong>after_last_underscore</strong> (<em>str</em>) – The column name for the SELECT clause.</p></li>
+<li><p><strong>before_last_underscore</strong> (<em>str</em>) – The KPI name for the WHERE clause.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>A formatted SQL query string.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>str</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="app.kpi_engine.dynamic.dynamic_engine.check_machine_operation">
+<span class="sig-prename descclassname"><span class="pre">app.kpi_engine.dynamic.dynamic_engine.</span></span><span class="sig-name descname"><span class="pre">check_machine_operation</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">machines</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">operations</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/app/kpi_engine/dynamic/dynamic_engine.html#check_machine_operation"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#app.kpi_engine.dynamic.dynamic_engine.check_machine_operation" title="Link to this definition"></a></dt>
+<dd><p>Validates and adjusts the relationship between machines and operations.
+Ensures the number of machines matches the number of operations. If a single machine string is provided, it resolves to the closest instances and adjusts the operations list if necessary. 
+Handles mismatches by attempting reconciliation or returning an error.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>machines</strong> (<em>str</em><em> or </em><em>list</em>) – A string representing a single machine or a list of machine names.</p></li>
+<li><p><strong>operations</strong> (<em>list</em>) – A list of operations associated with the machines.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>A tuple of validated and adjusted machines and operations or an error response.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>tuple or <a class="reference internal" href="app.models.responses.html#app.models.responses.rag.KPIResponse" title="app.models.responses.rag.KPIResponse">KPIResponse</a></p>
+</dd>
+<dt class="field-even">Raises<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>Exception</strong> – If resolving a machine string to its instances fails.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
 <dt class="sig sig-object py" id="app.kpi_engine.dynamic.dynamic_engine.compute">
 <span class="sig-prename descclassname"><span class="pre">app.kpi_engine.dynamic.dynamic_engine.</span></span><span class="sig-name descname"><span class="pre">compute</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">request</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="app.models.requests.html#app.models.requests.rag.KPIRequest" title="app.models.requests.rag.KPIRequest"><span class="pre">KPIRequest</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="app.models.responses.html#app.models.responses.rag.KPIResponse" title="app.models.responses.rag.KPIResponse"><span class="pre">KPIResponse</span></a></span></span><a class="reference internal" href="_modules/app/kpi_engine/dynamic/dynamic_engine.html#compute"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#app.kpi_engine.dynamic.dynamic_engine.compute" title="Link to this definition"></a></dt>
 <dd><p>Computes the value of a KPI based on the given request, including the validation of machines and operations,
-fetching the corresponding formula from the knowledge base, and performing the necessary calculations and 
+fetching the corresponding formula from the knowledge base, and performing the necessary calculations and
 aggregation.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><p><strong>request</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">KPIRequest</span></code>) – The KPI request containing parameters such as KPI name, machines, operations, time range, 
+<dd class="field-odd"><p><strong>request</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">KPIRequest</span></code>) – The KPI request containing parameters such as KPI name, machines, operations, time range,
 and time aggregation.</p>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
@@ -232,7 +272,7 @@ and time aggregation.</p>
 <dd class="field-odd"><p><code class="xref py py-class docutils literal notranslate"><span class="pre">KPIResponse</span></code></p>
 </dd>
 <dt class="field-even">Raises<span class="colon">:</span></dt>
-<dd class="field-even"><p><strong>Exception</strong> – If an error occurs during the calculation process, such as invalid machines/operations, 
+<dd class="field-even"><p><strong>Exception</strong> – If an error occurs during the calculation process, such as invalid machines/operations,
 failure to fetch the formula, or any computation errors.</p>
 </dd>
 </dl>

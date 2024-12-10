@@ -221,7 +221,7 @@
 <div class="viewcode-block" id="KPIEngine.compute_real_time">
 <a class="viewcode-back" href="../../../app.kpi_engine.html#app.kpi_engine.kpi_engine.KPIEngine.compute_real_time">[docs]</a>
     <span class="k">def</span> <span class="nf">compute_real_time</span><span class="p">(</span>
-            <span class="bp">self</span><span class="p">,</span> <span class="n">real_time_kpis</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">RealTimeKPI</span><span class="p">],</span> <span class="n">request</span><span class="p">:</span> <span class="n">RealTimeKPIRequest</span>
+        <span class="bp">self</span><span class="p">,</span> <span class="n">real_time_kpis</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">RealTimeKPI</span><span class="p">],</span> <span class="n">request</span><span class="p">:</span> <span class="n">RealTimeKPIRequest</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">RealTimeKPIResponse</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Processes a batch of real-time KPI data to compute aggregated results based on the user-defined formula.</span>
@@ -243,13 +243,17 @@
             <span class="n">complete_name</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">kpi</span><span class="o">.</span><span class="n">kpi</span><span class="si">}</span><span class="s2">_</span><span class="si">{</span><span class="n">kpi</span><span class="o">.</span><span class="n">column</span><span class="si">}</span><span class="s2">&quot;</span>
             <span class="k">if</span> <span class="n">complete_name</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">partial_result</span><span class="p">:</span>
                 <span class="bp">self</span><span class="o">.</span><span class="n">partial_result</span><span class="p">[</span><span class="n">complete_name</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">empty</span><span class="p">((</span><span class="mi">0</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">kpi</span><span class="o">.</span><span class="n">values</span><span class="p">)))</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">partial_result</span><span class="p">[</span><span class="n">complete_name</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">vstack</span><span class="p">([</span><span class="bp">self</span><span class="o">.</span><span class="n">partial_result</span><span class="p">[</span><span class="n">complete_name</span><span class="p">],</span> <span class="n">kpi</span><span class="o">.</span><span class="n">values</span><span class="p">])</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">partial_result</span><span class="p">[</span><span class="n">complete_name</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">vstack</span><span class="p">(</span>
+                <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">partial_result</span><span class="p">[</span><span class="n">complete_name</span><span class="p">],</span> <span class="n">kpi</span><span class="o">.</span><span class="n">values</span><span class="p">]</span>
+            <span class="p">)</span>
 
         <span class="c1"># Apply operations</span>
         <span class="k">for</span> <span class="n">operation</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">evaluable_formula_info</span><span class="p">[</span><span class="s2">&quot;operations_f&quot;</span><span class="p">]:</span>
             <span class="n">column</span> <span class="o">=</span> <span class="n">operation</span><span class="p">[</span><span class="s2">&quot;column&quot;</span><span class="p">]</span>
             <span class="n">value</span> <span class="o">=</span> <span class="n">operation</span><span class="p">[</span><span class="s2">&quot;value&quot;</span><span class="p">]</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">partial_result</span><span class="p">[</span><span class="n">column</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">partial_result</span><span class="p">[</span><span class="n">column</span><span class="p">][</span><span class="bp">self</span><span class="o">.</span><span class="n">partial_result</span><span class="p">[</span><span class="n">column</span><span class="p">]</span> <span class="o">==</span> <span class="n">value</span><span class="p">]</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">partial_result</span><span class="p">[</span><span class="n">column</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">partial_result</span><span class="p">[</span><span class="n">column</span><span class="p">][</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">partial_result</span><span class="p">[</span><span class="n">column</span><span class="p">]</span> <span class="o">==</span> <span class="n">value</span>
+            <span class="p">]</span>
 
         <span class="c1"># Set globals for involved KPIs</span>
         <span class="n">involved_kpis</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">partial_result</span><span class="o">.</span><span class="n">keys</span><span class="p">()</span>
@@ -285,6 +289,7 @@
                 <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span><span class="s2">&quot;WebSocket is not connected.&quot;</span><span class="p">)</span>
 
             <span class="c1"># Convert the response to JSON and send it</span>
+
             <span class="k">await</span> <span class="bp">self</span><span class="o">.</span><span class="n">websocket</span><span class="o">.</span><span class="n">send</span><span class="p">(</span><span class="n">response</span><span class="o">.</span><span class="n">to_json</span><span class="p">())</span>
             <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Sent real-time KPI result to GUI:&quot;</span><span class="p">,</span> <span class="n">response</span><span class="o">.</span><span class="n">to_json</span><span class="p">())</span>
         <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>

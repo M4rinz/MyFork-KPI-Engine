@@ -131,13 +131,14 @@
 
     <span class="n">involved_kpis</span><span class="p">,</span> <span class="n">evaluable_formula_info</span> <span class="o">=</span> <span class="n">prepare_for_real_time</span><span class="p">(</span><span class="n">request</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
 
-
     <span class="n">kpi_streaming_request</span> <span class="o">=</span> <span class="n">KPIStreamingRequest</span><span class="p">(</span>
         <span class="n">kpis</span><span class="o">=</span><span class="n">involved_kpis</span><span class="p">,</span>
         <span class="n">machines</span><span class="o">=</span><span class="n">request</span><span class="o">.</span><span class="n">machines</span><span class="p">,</span>
         <span class="n">operations</span><span class="o">=</span><span class="n">request</span><span class="o">.</span><span class="n">operations</span><span class="p">,</span>
     <span class="p">)</span>
-    <span class="n">kpi_engine</span> <span class="o">=</span> <span class="n">KPIEngine</span><span class="p">(</span><span class="n">KAFKA_TOPIC_NAME</span><span class="p">,</span> <span class="n">KAFKA_PORT</span><span class="p">,</span> <span class="n">KAFKA_SERVER</span><span class="p">,</span> <span class="n">evaluable_formula_info</span><span class="p">)</span>
+    <span class="n">kpi_engine</span> <span class="o">=</span> <span class="n">KPIEngine</span><span class="p">(</span>
+        <span class="n">KAFKA_TOPIC_NAME</span><span class="p">,</span> <span class="n">KAFKA_PORT</span><span class="p">,</span> <span class="n">KAFKA_SERVER</span><span class="p">,</span> <span class="n">evaluable_formula_info</span>
+    <span class="p">)</span>
 
     <span class="n">data_preprocessing_response</span> <span class="o">=</span> <span class="n">connect_to_publisher</span><span class="p">(</span><span class="n">kpi_streaming_request</span><span class="p">)</span>
     <span class="nb">print</span><span class="p">(</span>

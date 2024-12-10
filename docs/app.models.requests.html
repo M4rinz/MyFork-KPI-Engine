@@ -206,21 +206,19 @@ and aggregation details.</p>
 <span id="app-models-requests-rag-module"></span><h2>app.models.requests.rag module<a class="headerlink" href="#module-app.models.requests.rag" title="Link to this heading"></a></h2>
 <dl class="py class">
 <dt class="sig sig-object py" id="app.models.requests.rag.KPIRequest">
-<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">app.models.requests.rag.</span></span><span class="sig-name descname"><span class="pre">KPIRequest</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">name</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">machines</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">list</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">operations</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">list</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">time_aggregation</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">start_date</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">datetime</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">end_date</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">datetime</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">step</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/app/models/requests/rag.html#KPIRequest"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#app.models.requests.rag.KPIRequest" title="Link to this definition"></a></dt>
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">app.models.requests.rag.</span></span><span class="sig-name descname"><span class="pre">KPIRequest</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">name</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">machines</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">list</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">operations</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">list</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">time_aggregation</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">start_date</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">datetime</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">end_date</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">datetime</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">step</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/app/models/requests/rag.html#KPIRequest"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#app.models.requests.rag.KPIRequest" title="Link to this definition"></a></dt>
 <dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">BaseModel</span></code></p>
 <p>Represents the details of a KPI request, including the KPI name, machines, operations,
 aggregation function, and time range.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>name</strong> (<em>str</em>) – The name of the KPI to be calculated.</p></li>
-<li><p><strong>machines</strong> (<em>list</em>) – A list of machines involved in the KPI calculation.</p></li>
+<li><p><strong>name</strong> (<em>str</em>) – The name of the KPI to compute.</p></li>
+<li><p><strong>machines</strong> (<em>Union</em><em>[</em><em>list</em><em>, </em><em>str</em><em>]</em>) – A list of machines or a single machine associated with the KPI.</p></li>
 <li><p><strong>operations</strong> (<em>list</em>) – A list of operations corresponding to the machines.</p></li>
-<li><p><strong>time_aggregation</strong> (<em>str</em>) – The time aggregation function to be applied (e.g., ‘daily’, ‘weekly’).</p></li>
-<li><p><strong>start_date</strong> (<em>datetime</em>) – The start date of the KPI calculation range.</p></li>
-<li><p><strong>end_date</strong> (<em>datetime</em>) – The end date of the KPI calculation range.</p></li>
-<li><p><strong>step</strong> (<em>int</em>) – The calculation step, representing the time intervals for aggregation.
-Must be a positive integer.</p></li>
+<li><p><strong>time_aggregation</strong> (<em>str</em>) – The time aggregation function to apply (e.g., ‘daily’, ‘weekly’).</p></li>
+<li><p><strong>start_date</strong> (<em>datetime</em>) – The start date for the KPI calculation range.</p></li>
+<li><p><strong>end_date</strong> (<em>datetime</em>) – The end date for the KPI calculation range.</p></li>
 </ul>
 </dd>
 </dl>
@@ -231,7 +229,7 @@ Must be a positive integer.</p></li>
 
 <dl class="py attribute">
 <dt class="sig sig-object py" id="app.models.requests.rag.KPIRequest.machines">
-<span class="sig-name descname"><span class="pre">machines</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">list</span></em><a class="headerlink" href="#app.models.requests.rag.KPIRequest.machines" title="Link to this definition"></a></dt>
+<span class="sig-name descname"><span class="pre">machines</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">list</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">str</span></em><a class="headerlink" href="#app.models.requests.rag.KPIRequest.machines" title="Link to this definition"></a></dt>
 <dd></dd></dl>
 
 <dl class="py attribute">
@@ -274,7 +272,7 @@ Must be a positive integer.</p></li>
 <dd class="field-odd"><p><strong>value</strong> (<em>list</em>) – The list of machines.</p>
 </dd>
 <dt class="field-even">Raises<span class="colon">:</span></dt>
-<dd class="field-even"><p><strong>ValueError</strong> – If machines is not a list.</p>
+<dd class="field-even"><p><strong>ValueError</strong> – If machines is not a list or a string.</p>
 </dd>
 <dt class="field-odd">Returns<span class="colon">:</span></dt>
 <dd class="field-odd"><p>The validated machines list.</p>

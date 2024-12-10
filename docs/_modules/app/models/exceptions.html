@@ -138,6 +138,20 @@
     <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">message</span><span class="o">=</span><span class="s2">&quot;KPI formula not found&quot;</span><span class="p">):</span>
         <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">message</span><span class="p">)</span></div>
 
+
+
+<div class="viewcode-block" id="DivisionByZeroException">
+<a class="viewcode-back" href="../../../app.models.html#app.models.exceptions.DivisionByZeroException">[docs]</a>
+<span class="k">class</span> <span class="nc">DivisionByZeroException</span><span class="p">(</span><span class="ne">Exception</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Exception raised when an attempt is made to divide by zero.</span>
+<span class="sd">    </span>
+<span class="sd">    :param message: Error message to display when the exception is raised, </span>
+<span class="sd">                    defaults to &quot;You have encountered a division by zero&quot;.</span>
+<span class="sd">    :type message: str, optional</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">message</span><span class="o">=</span><span class="s2">&quot;You have encountered a division by zero&quot;</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">message</span><span class="p">)</span></div>
+
 </pre></div>
 
            </div>
