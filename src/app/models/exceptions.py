@@ -55,11 +55,5 @@ class KPIFormulaNotFoundException(Exception):
 
 
 class DivisionByZeroException(Exception):
-    """Exception raised when an attempt is made to divide by zero.
-    
-    :param message: Error message to display when the exception is raised, 
-                    defaults to "You have encountered a division by zero".
-    :type message: str, optional
-    """
     def __init__(self, message="You have encountered a division by zero"):
         super().__init__(message)

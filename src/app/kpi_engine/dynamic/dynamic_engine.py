@@ -103,6 +103,7 @@ def dynamic_kpi(
 
 
 def query_DB(kpi: str, request: KPIRequest, **kwargs) -> tuple[np.ndarray, np.ndarray]:
+    kpi_split = kpi.split("°")[1]
     """Executes a query on the database to retrieve real-time data based on the provided KPI string, filters, and request parameters.
     The function processes the query result, organizes the data into a DataFrame, converts it into a NumPy array, and splits it into two parts based on a specified step.
 
@@ -122,7 +123,6 @@ def query_DB(kpi: str, request: KPIRequest, **kwargs) -> tuple[np.ndarray, np.nd
     :rtype: tuple[np.ndarray, np.ndarray]
     """
 
-    kpi_split = kpi.split("°")[1]
     match = re.search(r"^(.*)_(.+)$", kpi_split)
     if match:
         before_last_underscore = match.group(1)
@@ -201,7 +201,9 @@ def query_DB(kpi: str, request: KPIRequest, **kwargs) -> tuple[np.ndarray, np.nd
 
 
 def A(kpi: str, partial_result: dict[str, Any], **kwargs) -> str:
-    """Performs an aggregation operation on a KPI, applying it to the data. The available aggregation are: mean, sum, max, min, var, std.    :param kpi: The KPI formula to process, typically in the form of a string.
+    """Performs an aggregation operation on a KPI, applying it to the data. The available aggregation are: mean, sum, max, min, var, std.
+    # keys_inv is the key of the dictionary with the partial result associated with the kpi
+    :param kpi: The key performance indicator (KPI) formula to process, typically in the form of a string.
     :type kpi: str
     :param partial_result: A dictionary containing intermediate results for KPIs, used for aggregation.
     :type partial_result: dict[str, Any]
@@ -211,7 +213,6 @@ def A(kpi: str, partial_result: dict[str, Any], **kwargs) -> str:
     :return: A string representing the key for the aggregated KPI result.
     :rtype: str
     """
-    # keys_inv is the key of the dictionary with the partial result associated with the kpi
     keys_inv = keys_involved(kpi, partial_result)[0]
 
     # get the variable on which partial_result[key] should be aggregated
@@ -526,18 +527,6 @@ def keys_involved(kpi: str, partial_result: dict[str, Any]):
 
 
 def check_machine_operation(machines, operations):
-    """Validates and adjusts the relationship between machines and operations.
-    Ensures the number of machines matches the number of operations. If a single machine string is provided, it resolves to the closest instances and adjusts the operations list if necessary. 
-    Handles mismatches by attempting reconciliation or returning an error.
-
-    :param machines: A string representing a single machine or a list of machine names.
-    :type machines: str or list
-    :param operations: A list of operations associated with the machines.
-    :type operations: list
-    :return: A tuple of validated and adjusted machines and operations or an error response.
-    :rtype: tuple or KPIResponse
-    :raises Exception: If resolving a machine string to its instances fails.
-    """
     if isinstance(machines, str):
         try:
             machine = get_closest_instances(machines)["instances"]
@@ -573,21 +562,6 @@ def check_machine_operation(machines, operations):
 
 # build query statement
 def build_query(request: KPIRequest, after_last_underscore, before_last_underscore):
-    """Constructs an SQL query based on the KPI request parameters.
-    Generates a query to retrieve real-time KPI data, applying filters for machines, 
-    operations, and a time range. Dynamically adapts to the presence of machines 
-    or operations in the request.
-
-    :param request: Details of the KPI request, including machines, operations, 
-                    start date, and end date.
-    :type request: KPIRequest
-    :param after_last_underscore: The column name for the SELECT clause.
-    :type after_last_underscore: str
-    :param before_last_underscore: The KPI name for the WHERE clause.
-    :type before_last_underscore: str
-    :return: A formatted SQL query string.
-    :rtype: str
-    """
     if request.machines and request.operations:
         conditions = " OR ".join(
             f"(name = '{m}' AND operation = '{o}')"
