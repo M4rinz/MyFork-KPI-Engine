@@ -298,7 +298,7 @@ def C(kpi: str, partial_result: dict[str, Any], **kwargs):
     return "°" + key
 
 
-def compute(request: KPIRequest) -> KPIResponse:
+def compute(request: KPIRequest, chart: bool) -> KPIResponse:
     name = request.name
 
     # fare funzione controllo della stringa
@@ -340,7 +340,10 @@ def compute(request: KPIRequest) -> KPIResponse:
         return KPIResponse(message=repr(e), value=-1)
 
     # aggregated on time
-    result = finalize_mo(result, partial_result, request.time_aggregation)
+    if not chart:
+        result = finalize_mo(result, partial_result, request.time_aggregation)
+    else:
+        result = finalize_mo(result, partial_result, None)
 
     message = (
         f"The {aggregation} of KPI {name} for machines {request.machines} with operations {request.operations} "
@@ -380,6 +383,8 @@ def finalize_mo(
     # final formula is of the for '°key' where key is the key of the dictionary with the partial result
     key = final_formula.replace("°", "")
     result = getattr(np, "nan" + partial_result["agg"])(partial_result[key], axis=1)
+    if time_aggregation is None:
+        return result
     return getattr(np, "nan" + time_aggregation)(result)
 
 
