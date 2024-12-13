@@ -8,6 +8,7 @@ import numpy as np
 import numexpr as ne
 
 from aiokafka import AIOKafkaConsumer
+from fastapi import WebSocket
 
 from src.app.models.real_time_kpi import RealTimeKPI
 from src.app.models.requests.gui import RealTimeKPIRequest
@@ -23,10 +24,8 @@ class KPIEngine:
         self._port = port
         self._servers = servers
         self.consumer = self.create_consumer()
-        self.websocket = None
         self.partial_result = {}
         self.evaluable_formula_info = evaluable_formula_info
-        # self.websocket = create_websocket()
         KPIEngine.instance = self
         print(
             "KPI Engine initialized: created consumer. Topic: ",
@@ -49,6 +48,7 @@ class KPIEngine:
             bootstrap_servers=f"{self._servers}:{self._port}",
             value_deserializer=decode_message,
             auto_offset_reset="earliest",
+            enable_auto_commit=True,
         )
 
     async def start_consumer(self):
@@ -59,21 +59,21 @@ class KPIEngine:
             print(f"Error starting consumer: {e}")
             return {"Error": f"Error starting consumer: {str(e)}"}
 
-    async def consume(self, request: RealTimeKPIRequest, stop_event):
+    async def consume(
+        self, websocket: WebSocket, request: RealTimeKPIRequest, stop_event
+    ):
         try:
             print("Consuming messages...")
-            print("Request: ", request)
             while not stop_event.is_set():
                 # get the last message from the topic
                 real_time_kpis = (await self.consumer.getone()).value
 
                 # compute real time kpis
                 response = self.compute_real_time(real_time_kpis, request)
-
-                print(response)
+                print("Computed real-time KPI: ", response.to_json())
 
                 # send the computed result to the GUI via websocket
-                # await self.send_real_time_result(real_time_response)
+                await websocket.send_json(response.to_json())
 
         except Exception as e:
             print("Error in consumer: ", e)
@@ -121,24 +121,12 @@ class KPIEngine:
         time_aggregation = request.time_aggregation
         value = getattr(np, time_aggregation)(out)
 
-        response = RealTimeKPIResponse(label=datetime.now(), value=value)
+        print("Computed value: ", value)
+        print("Computed label: ", str(datetime.now()))
+
+        response = RealTimeKPIResponse(label=str(datetime.now()), value=value)
 
         return response
-
-    async def send_real_time_result(self, response: RealTimeKPIResponse):
-        """
-        Sends a real-time result to the GUI via the WebSocket.
-        """
-        try:
-            if not self.websocket:
-                raise RuntimeError("WebSocket is not connected.")
-
-            # Convert the response to JSON and send it
-
-            await self.websocket.send(response.to_json())
-            print("Sent real-time KPI result to GUI:", response.to_json())
-        except Exception as e:
-            print(f"Error sending real-time result via WebSocket: {e}")
 
     async def stop(self):
         try:
@@ -147,10 +135,6 @@ class KPIEngine:
                 print("Kafka consumer stopped.")
 
             await delete_kafka_topic(self._topic, f"{self._servers}:{self._topic}")
-
-            if self.websocket:
-                await self.websocket.close()
-                print("WebSocket connection closed.")
 
             response = requests.get(
                 "http://data-preprocessing-container:8003/real-time/stop",

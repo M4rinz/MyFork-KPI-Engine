@@ -1,9 +1,10 @@
 from pydantic import BaseModel, validator
+from typing import Union
 
 
 class KPIResponse(BaseModel):
     message: str
-    value: float
+    value: Union[float, list[float]]
 
     @validator("message")
     def validate_message(cls, value):

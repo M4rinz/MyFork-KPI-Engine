@@ -1,5 +1,4 @@
 import json
-from datetime import datetime
 
 from pydantic import BaseModel
 
@@ -10,7 +9,7 @@ class RealTimeResponse(BaseModel):
 
 
 class RealTimeKPIResponse(BaseModel):
-    label: datetime
+    label: str
     value: float
 
     def to_json(self):

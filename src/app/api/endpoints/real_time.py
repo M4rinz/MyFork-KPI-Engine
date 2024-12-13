@@ -1,7 +1,7 @@
 # src/app/endpoints/real_time.py
 
 import asyncio
-from fastapi import APIRouter
+from fastapi import APIRouter, WebSocket
 from threading import Event
 import os
 
@@ -24,8 +24,33 @@ KAFKA_SERVER = os.getenv("KAFKA_SERVER")
 KAFKA_PORT = os.getenv("KAFKA_PORT")
 
 
-@router.post("/start", response_model=RealTimeResponse)
-async def real_time_session(request: RealTimeKPIRequest) -> RealTimeResponse:
+@router.websocket("/")
+async def real_time_session(websocket: WebSocket) -> RealTimeResponse:
+    await websocket.accept()
+
+    while True:
+
+        data = await websocket.receive_json()
+        if data == {"message": "stop"}:
+            await stop_consumer()
+            await websocket.close()
+            break
+        elif data["message"] == "start":
+            print("Starting real-time session, data:", data)
+            request = RealTimeKPIRequest(**data["request"])
+            _ = await handle_real_time_session(websocket, request)
+        else:
+            response = RealTimeResponse(
+                message="Invalid message received in the websocket", status=400
+            )
+            await websocket.send_json(response.dict())
+            await websocket.close()
+            break
+
+
+async def handle_real_time_session(
+    websocket: WebSocket, request: RealTimeKPIRequest
+) -> RealTimeResponse:
     global consumer_task, stop_event, kpi_engine
 
     if consumer_task and not consumer_task.done():
@@ -61,12 +86,13 @@ async def real_time_session(request: RealTimeKPIRequest) -> RealTimeResponse:
             message=f"Error starting consumer: {str(e)}", status=500
         )
 
-    consumer_task = asyncio.create_task(kpi_engine.consume(request, stop_event))
+    consumer_task = asyncio.create_task(
+        kpi_engine.consume(websocket, request, stop_event)
+    )
 
     return RealTimeResponse(message="Real-time session started", status=200)
 
 
-@router.get("/stop", response_model=RealTimeResponse)
 async def stop_consumer() -> RealTimeResponse:
     """Stop the Kafka consumer."""
     global stop_event, consumer_task
