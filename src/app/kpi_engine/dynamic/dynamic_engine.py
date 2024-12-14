@@ -96,21 +96,7 @@ def query_DB(kpi: str, request: KPIRequest, **kwargs) -> tuple[np.ndarray, np.nd
         request, after_last_underscore, before_last_underscore
     )
 
-    """
-    response = requests.post(
-        "http://smart-database-container:8002/get_real_time_data",
-        json={
-        'start_date':str(request.start_date),
-        'end_date': str(request.end_date),
-        "kpi_name":before_last_underscore ,
-        'colum_name':after_last_underscore,
-        'machines':request.machines,
-        'operations':request.operations,
-        },
-        timeout=10,
-    )
-    #json={"statement": insert_query, "data": data},
-    """
+    print("Query:", raw_query_statement)
 
     response = requests.get(
         "http://smart-database-container:8002/query",
@@ -158,6 +144,8 @@ def query_DB(kpi: str, request: KPIRequest, **kwargs) -> tuple[np.ndarray, np.nd
         step_split = numpy_data.reshape(
             numpy_data.shape[0] // step, step, numpy_data.shape[1]
         )
+
+    print("Step split shape:", step_split.shape)
 
     return step_split, bottom
 
@@ -226,29 +214,13 @@ def R(
     **kwargs,
 ):
 
-    internal_operation = {
-        "idle": "idle",
-        "working": "working",
-        "offline": "offline",
-    }
-
     kpi_split = kpi.split("°")
     kpi_involved = kpi_split[1]
+    operation = kpi_split[4]
 
-    if kpi_split[4] in internal_operation:
-
-        if "internal_operation" in partial_result:
-            if not partial_result["internal_operation"]:
-                partial_result["internal_operation"] = [
-                    internal_operation[kpi_split[4]]
-                ]
-            else:
-                partial_result["internal_operation"] = partial_result[
-                    "internal_operation"
-                ].append(internal_operation[kpi_split[4]])
-
-        else:
-            partial_result["internal_operation"] = [internal_operation[kpi_split[4]]]
+    # save the operation if it is in the formula
+    if operation in grammar.operations:
+        partial_result.setdefault("internal_operation", []).append(operation)
 
     if kpi_involved in formulas_dict:
         return str(
@@ -339,6 +311,8 @@ def compute(request: KPIRequest, chart: bool) -> KPIResponse:
     except Exception as e:
         return KPIResponse(message=repr(e), value=-1)
 
+    print("Partial Results:", partial_result, "Result:", result)
+
     # aggregated on time
     if not chart:
         result = finalize_mo(result, partial_result, request.time_aggregation)
@@ -349,6 +323,8 @@ def compute(request: KPIRequest, chart: bool) -> KPIResponse:
         f"The {aggregation} of KPI {name} for machines {request.machines} with operations {request.operations} "
         f"from {start_date} to {end_date} is {result}"
     )
+
+    print("Message:", message)
 
     _ = insert_aggregated_kpi(
         request=request,
@@ -382,7 +358,9 @@ def finalize_mo(
 ):
     # final formula is of the for '°key' where key is the key of the dictionary with the partial result
     key = final_formula.replace("°", "")
-    result = getattr(np, "nan" + partial_result["agg"])(partial_result[key], axis=1)
+    result = partial_result[key]
+    if partial_result["agg"] != "":
+        result = getattr(np, "nan" + partial_result["agg"])(result, axis=1)
     if time_aggregation is None:
         return result
     return getattr(np, "nan" + time_aggregation)(result)

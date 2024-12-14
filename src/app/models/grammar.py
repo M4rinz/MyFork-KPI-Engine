@@ -2,3 +2,4 @@
 
 aggregations = ["sum", "mean", "min", "max", "var", "std"]
 operators = ["+", "-", "*", "/", "**"]
+operations = ["idle", "working", "offline"]
