@@ -96,8 +96,6 @@ def query_DB(kpi: str, request: KPIRequest, **kwargs) -> tuple[np.ndarray, np.nd
         request, after_last_underscore, before_last_underscore
     )
 
-    print("Query:", raw_query_statement)
-
     response = requests.get(
         "http://smart-database-container:8002/query",
         params={"statement": raw_query_statement},
@@ -144,8 +142,6 @@ def query_DB(kpi: str, request: KPIRequest, **kwargs) -> tuple[np.ndarray, np.nd
         step_split = numpy_data.reshape(
             numpy_data.shape[0] // step, step, numpy_data.shape[1]
         )
-
-    print("Step split shape:", step_split.shape)
 
     return step_split, bottom
 
@@ -311,8 +307,6 @@ def compute(request: KPIRequest, chart: bool) -> KPIResponse:
     except Exception as e:
         return KPIResponse(message=repr(e), value=-1)
 
-    print("Partial Results:", partial_result, "Result:", result)
-
     # aggregated on time
     if not chart:
         result = finalize_mo(result, partial_result, request.time_aggregation)
@@ -323,8 +317,6 @@ def compute(request: KPIRequest, chart: bool) -> KPIResponse:
         f"The {aggregation} of KPI {name} for machines {request.machines} with operations {request.operations} "
         f"from {start_date} to {end_date} is {result}"
     )
-
-    print("Message:", message)
 
     if not chart:
         _ = insert_aggregated_kpi(
