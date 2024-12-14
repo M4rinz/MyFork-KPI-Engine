@@ -326,11 +326,12 @@ def compute(request: KPIRequest, chart: bool) -> KPIResponse:
 
     print("Message:", message)
 
-    _ = insert_aggregated_kpi(
-        request=request,
-        kpi_list=formulas.keys(),
-        value=result,
-    )
+    if not chart:
+        _ = insert_aggregated_kpi(
+            request=request,
+            kpi_list=formulas.keys(),
+            value=result,
+        )
 
     return KPIResponse(message=message, value=result)
 
@@ -362,7 +363,7 @@ def finalize_mo(
     if partial_result["agg"] != "":
         result = getattr(np, "nan" + partial_result["agg"])(result, axis=1)
     if time_aggregation is None:
-        return result
+        return np.nan_to_num(result).tolist()
     return getattr(np, "nan" + time_aggregation)(result)
 
 
