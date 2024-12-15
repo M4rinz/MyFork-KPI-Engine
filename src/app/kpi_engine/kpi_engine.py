@@ -54,7 +54,6 @@ class KPIEngine:
     async def start_consumer(self):
         try:
             await self.consumer.start()
-            print("Consumer started successfully")
         except Exception as e:
             print(f"Error starting consumer: {e}")
             return {"Error": f"Error starting consumer: {str(e)}"}
@@ -70,7 +69,6 @@ class KPIEngine:
 
                 # compute real time kpis
                 response = self.compute_real_time(real_time_kpis, request)
-                print("Computed real-time KPI: ", response.to_json())
 
                 # send the computed result to the GUI via websocket
                 await websocket.send_json(response.to_json())
@@ -83,10 +81,6 @@ class KPIEngine:
     def compute_real_time(
         self, real_time_kpis: list[RealTimeKPI], request: RealTimeKPIRequest
     ) -> RealTimeKPIResponse:
-
-        print("Computing real-time KPIs...")
-        print("Real-time KPIs: ", real_time_kpis)
-        print("Formula info", self.evaluable_formula_info)
 
         # Convert real_time_kpis to numpy arrays
         for kpi in real_time_kpis:
@@ -121,9 +115,6 @@ class KPIEngine:
         time_aggregation = request.time_aggregation
         value = getattr(np, time_aggregation)(out)
 
-        print("Computed value: ", value)
-        print("Computed label: ", str(datetime.now()))
-
         response = RealTimeKPIResponse(label=str(datetime.now()), value=value)
 
         return response
@@ -132,14 +123,13 @@ class KPIEngine:
         try:
             if self.consumer:
                 await self.consumer.stop()
-                print("Kafka consumer stopped.")
-
-            await delete_kafka_topic(self._topic, f"{self._servers}:{self._topic}")
 
             response = requests.get(
                 "http://data-preprocessing-container:8003/real-time/stop",
             )
             response.raise_for_status()
+
+            await delete_kafka_topic(self._topic, f"{self._servers}:{self._port}")
 
         except Exception as e:
             print(f"Error stopping connections: {e}")
