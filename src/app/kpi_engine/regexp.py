@@ -6,7 +6,7 @@ from src.app.models import exceptions
 from src.app.services.knowledge_base import get_closest_kpi_formula, get_kpi_formula
 
 
-def clean_placeholders(formulas: dict[str, str]) -> (dict[str,str],dict[int,str]):
+def clean_placeholders(formulas: dict[str, str]) -> (dict[str, str], dict[int, str]):
     """
     Cleans the formula from the placeholders used in the KB. The placeholders are as °T°m°o, ...
     When it encounters operations such as idle, working, offline, it saves them in a list.
@@ -38,7 +38,6 @@ def clean_placeholders(formulas: dict[str, str]) -> (dict[str,str],dict[int,str]
 
         # Save the cleaned formula
         cleaned_formulas[key] = cleaned_formula.strip()
-
 
     return cleaned_formulas, formula_operations
 
@@ -207,10 +206,8 @@ def extract_names(formula_info: dict[str, Any]) -> list[str]:
     formula_info["formula"] = replace_operations_in_formula(expression, operations)
 
     filtered_names = [name for name in names if not name.isdigit()]
-    
-    
-    return filtered_names
 
+    return filtered_names
 
 
 def prepare_for_real_time(kpi_name: str) -> (list[str], dict[str, str]):
@@ -254,13 +251,13 @@ def transform_formula(
     """
     result = {}
 
-      # save in the result the operations idle working offline, if present
+    # save in the result the operations idle working offline, if present
     result["operations_f"] = operation_IWO
-    # we catch if the formula has a particular structure with no 
-    if  not operation_IWO:
-        result['particular']=0
-    else :
-        result['particular']=1
+    # we catch if the formula has a particular structure with no
+    if not operation_IWO:
+        result["particular"] = 0
+    else:
+        result["particular"] = 1
     # substitution of the R° references with their formula in the formulas dict
     formula = re.sub(r"R°(\w+)", lambda match: f"{formulas[match.group(1)]}", formula)
     # remove the D° from the formula
@@ -276,6 +273,7 @@ def transform_formula(
     result["formula"] = to_evaluable(result["formula"])
     return result
 
+
 def replace_operations_in_formula(formula: str, mapping: dict[int, str]) -> str:
     """
     Replaces placeholders in the formula based on a mapping of positions to operation types.
@@ -285,6 +283,7 @@ def replace_operations_in_formula(formula: str, mapping: dict[int, str]) -> str:
     :param agg: The aggregation function to apply (e.g., 'sum').
     :return: The modified formula with placeholders replaced.
     """
+
     # Generalize replacement for variable names (alphanumeric and underscores) and append the operation suffix
     def replacement(match):
         keyword = match.group(0)  # Match the keyword (e.g., "time_sum")

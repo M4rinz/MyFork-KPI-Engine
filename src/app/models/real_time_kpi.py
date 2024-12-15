@@ -12,6 +12,6 @@ class RealTimeKPI(BaseModel):
         return cls(
             kpi=data["kpi"],
             column=data["column"],
-            operation= data['operation'],
+            operation=data["operation"],
             values=data["values"],
         )

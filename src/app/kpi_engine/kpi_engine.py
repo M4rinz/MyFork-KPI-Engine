@@ -82,7 +82,7 @@ class KPIEngine:
         self, real_time_kpis: list[RealTimeKPI], request: RealTimeKPIRequest
     ) -> RealTimeKPIResponse:
 
-        special=bool(self.evaluable_formula_info["particular"])
+        special = bool(self.evaluable_formula_info["particular"])
         # Convert real_time_kpis to numpy arrays
         for kpi in real_time_kpis:
             complete_name = f"{kpi.kpi}_{kpi.column}"
@@ -94,7 +94,6 @@ class KPIEngine:
                 [self.partial_result[complete_name], kpi.values]
             )
 
-
         # Set globals for involved KPIs
         involved_kpis = self.partial_result.keys()
         for base_kpi in involved_kpis:
@@ -103,15 +102,17 @@ class KPIEngine:
             else:
                 # if it is particular we made the aggregation inside and not outside
                 aggregation = self.evaluable_formula_info["agg"]
-                globals()[base_kpi] = getattr(np, aggregation)(self.partial_result[base_kpi], axis=1)
+                globals()[base_kpi] = getattr(np, aggregation)(
+                    self.partial_result[base_kpi], axis=1
+                )
 
         # Evaluate the formula
         formula = self.evaluable_formula_info["formula"]
         results = ne.evaluate(formula)
 
         # Aggregate the result
-        out=results
-        #we chech if it is particular so we make the final aggregation
+        out = results
+        # we check if it is particular, so we make the final aggregation
         if not special:
             aggregation = self.evaluable_formula_info["agg"]
             out = getattr(np, aggregation)(results, axis=1)

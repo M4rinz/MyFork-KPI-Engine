@@ -62,15 +62,15 @@ async def handle_real_time_session(
 
     involved_kpis, evaluable_formula_info = prepare_for_real_time(request.name)
 
-    special=bool(evaluable_formula_info['particular'])
+    special = bool(evaluable_formula_info["particular"])
     if special:
-        request.operations=list(evaluable_formula_info['operations_f'].values())
+        request.operations = list(evaluable_formula_info["operations_f"].values())
 
     kpi_streaming_request = KPIStreamingRequest(
         kpis=involved_kpis,
         machines=request.machines,
         operations=request.operations,
-        special= special
+        special=special,
     )
     kpi_engine = KPIEngine(
         KAFKA_TOPIC_NAME, KAFKA_PORT, KAFKA_SERVER, evaluable_formula_info
