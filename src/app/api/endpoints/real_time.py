@@ -1,25 +1,17 @@
 # src/app/endpoints/real_time.py
 
 import asyncio
-from fastapi import APIRouter
+from fastapi import APIRouter, WebSocket
 from threading import Event
 import os
 
-#from src.app.kpi_engine.kpi_engine import KPIEngine
-#from src.app.kpi_engine.regexp import prepare_for_real_time
-#from src.app.models.requests.data_processing import KPIStreamingRequest
-#from src.app.models.requests.gui import RealTimeKPIRequest
-#from src.app.models.responses.gui import RealTimeResponse
-#from src.app.services.data_processing import connect_to_publisher
-#from src.app.utils.kafka_admin import delete_kafka_topic
-
-from app.kpi_engine.kpi_engine import KPIEngine
-from app.kpi_engine.regexp import prepare_for_real_time
-from app.models.requests.data_processing import KPIStreamingRequest
-from app.models.requests.gui import RealTimeKPIRequest
-from app.models.responses.gui import RealTimeResponse
-from app.services.data_processing import connect_to_publisher
-from app.utils.kafka_admin import delete_kafka_topic
+from src.app.kpi_engine.kpi_engine import KPIEngine
+from src.app.kpi_engine.regexp import prepare_for_real_time
+from src.app.models.requests.data_processing import KPIStreamingRequest
+from src.app.models.requests.gui import RealTimeKPIRequest
+from src.app.models.responses.gui import RealTimeResponse
+from src.app.services.data_processing import connect_to_publisher
+from src.app.utils.kafka_admin import delete_kafka_topic
 
 router = APIRouter()
 
@@ -32,21 +24,33 @@ KAFKA_SERVER = os.getenv("KAFKA_SERVER")
 KAFKA_PORT = os.getenv("KAFKA_PORT")
 
 
-@router.post("/start", response_model=RealTimeResponse)
-async def real_time_session(request: RealTimeKPIRequest) -> RealTimeResponse:
-    """
-    Starts a real-time KPI session.
+@router.websocket("/")
+async def real_time_session(websocket: WebSocket) -> RealTimeResponse:
+    await websocket.accept()
 
-    This endpoint initializes a real-time KPI session by setting up the Kafka consumer 
-    and KPI engine. It processes the provided request, validates inputs, prepares the 
-    KPI formula, and begins streaming data for real-time KPI computation.
+    while True:
 
-    :param request: The request containing details of the KPI session, such as KPI name, 
-                    machines, and operations.
-    :type request: RealTimeKPIRequest
-    :return: A response indicating the success or failure of starting the real-time session.
-    :rtype: RealTimeResponse
-    """
+        data = await websocket.receive_json()
+        if data == {"message": "stop"}:
+            await stop_consumer()
+            await websocket.close()
+            break
+        elif data["message"] == "start":
+            print("Starting real-time session, data:", data)
+            request = RealTimeKPIRequest(**data["request"])
+            _ = await handle_real_time_session(websocket, request)
+        else:
+            response = RealTimeResponse(
+                message="Invalid message received in the websocket", status=400
+            )
+            await websocket.send_json(response.dict())
+            await websocket.close()
+            break
+
+
+async def handle_real_time_session(
+    websocket: WebSocket, request: RealTimeKPIRequest
+) -> RealTimeResponse:
     global consumer_task, stop_event, kpi_engine
 
     if consumer_task and not consumer_task.done():
@@ -58,10 +62,15 @@ async def real_time_session(request: RealTimeKPIRequest) -> RealTimeResponse:
 
     involved_kpis, evaluable_formula_info = prepare_for_real_time(request.name)
 
+    special = bool(evaluable_formula_info["particular"])
+    if special:
+        request.operations = list(evaluable_formula_info["operations_f"].values())
+
     kpi_streaming_request = KPIStreamingRequest(
         kpis=involved_kpis,
         machines=request.machines,
         operations=request.operations,
+        special=special,
     )
     kpi_engine = KPIEngine(
         KAFKA_TOPIC_NAME, KAFKA_PORT, KAFKA_SERVER, evaluable_formula_info
@@ -82,23 +91,24 @@ async def real_time_session(request: RealTimeKPIRequest) -> RealTimeResponse:
             message=f"Error starting consumer: {str(e)}", status=500
         )
 
-    consumer_task = asyncio.create_task(kpi_engine.consume(request, stop_event))
+    consumer_task = asyncio.create_task(
+        kpi_engine.consume(websocket, request, stop_event)
+    )
 
     return RealTimeResponse(message="Real-time session started", status=200)
 
 
-@router.get("/stop", response_model=RealTimeResponse)
 async def stop_consumer() -> RealTimeResponse:
     """
     Stops the currently running Kafka consumer.
 
-    This endpoint stops the real-time KPI session by signaling the Kafka consumer to 
+    This endpoint stops the real-time KPI session by signaling the Kafka consumer to
     terminate, processing any remaining data, and closing all active connections.
 
     :return: A response indicating the success or failure of stopping the consumer.
     :rtype: RealTimeResponse
     """
-    
+
     global stop_event, consumer_task
 
     if consumer_task is None or kpi_engine is None:
@@ -124,7 +134,7 @@ async def shutdown_event():
     """
     Handles application shutdown by stopping the Kafka consumer and cleaning up resources.
 
-    This function is triggered during application shutdown. It stops the Kafka consumer 
+    This function is triggered during application shutdown. It stops the Kafka consumer
     and deletes the Kafka topic associated with the real-time session.
 
     :raises Exception: If errors occur during the cleanup process.

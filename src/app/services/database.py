@@ -42,10 +42,9 @@ def insert_aggregated_kpi(
         request.step,
     )
 
-    print("Inserting aggregated KPI data into the database...")
+    print("Inserting aggregated KPI data into the database...", insert_query, data)
 
     return requests.post(
         "http://smart-database-container:8002/insert",
-        json={"statement": insert_query, "data": data},
         timeout=5,
     )

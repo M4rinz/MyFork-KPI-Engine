@@ -16,6 +16,7 @@ class KPIStreamingRequest(BaseModel):
     kpis: list[str]  # lis of all kpis
     machines: list[str]  # list of all machines
     operations: list[str]  # list of all operations
+    special: bool
 
     def to_json(self):
         """Converts the KPIStreamingRequest object to a JSON string.

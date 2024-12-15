@@ -19,11 +19,11 @@ from src.app.services.knowledge_base import (
 
 
 def dynamic_kpi(
-        kpi: str,
-        formulas_dict: dict[str, str],
-        partial_result: dict[str, Any],
-        request: KPIRequest,
-        **kwargs,
+    kpi: str,
+    formulas_dict: dict[str, str],
+    partial_result: dict[str, Any],
+    request: KPIRequest,
+    **kwargs,
 ):
 
     """Processes a KPI formula string by evaluating and performing operations (D°, A°, S°, R°, C°) and resolving nested expressions. The function replaces parts of the string and recursively calls itself to process nested KPIs, returning the final computed result.
@@ -104,24 +104,6 @@ def dynamic_kpi(
 
 def query_DB(kpi: str, request: KPIRequest, **kwargs) -> tuple[np.ndarray, np.ndarray]:
     kpi_split = kpi.split("°")[1]
-    """Executes a query on the database to retrieve real-time data based on the provided KPI string, filters, and request parameters.
-    The function processes the query result, organizes the data into a DataFrame, converts it into a NumPy array, and splits it into two parts based on a specified step.
-
-    :param kpi: The KPI string used to build the database query. The string is parsed to extract the relevant database field for the query.
-    :type kpi: str
-    :param request: An object containing the request parameters, including machines, operations, start and end date, and step for splitting the data.
-    :type request: KPIRequest
-    :param kwargs: Additional arguments passed to the function as needed.
-    :type kwargs: dict, optional
-
-    :raises ValueError: If the KPI string is not in the expected format or the database reference is invalid.
-    :raises EmptyQueryException: If the query results in an empty dataset (no data is returned from the database).
-
-    :return: A tuple containing two NumPy arrays:
-             - The first array (`step_split`) contains the reshaped data split by the specified step.
-             - The second array (`bottom`) contains any remaining data that could not be split evenly by the step.
-    :rtype: tuple[np.ndarray, np.ndarray]
-    """
 
     match = re.search(r"^(.*)_(.+)$", kpi_split)
     if match:
@@ -130,32 +112,35 @@ def query_DB(kpi: str, request: KPIRequest, **kwargs) -> tuple[np.ndarray, np.nd
     else:
         raise ValueError(f"DB query - invalid DB reference: {kpi_split}")
 
-    raw_query_statement = build_query(
-        request, after_last_underscore, before_last_underscore
-    )
+    machines_to_send = ""
+    for i in range(0, len(request.machines)):
+        if i < len(request.machines) - 1:
+            machines_to_send += request.machines[i] + ","
+        else:
+            machines_to_send += request.machines[i]
 
-    """
-    response = requests.post(
+    operations_to_send = ""
+    for i in range(0, len(request.operations)):
+        if i < len(request.operations) - 1:
+            operations_to_send += request.operations[i] + ","
+        else:
+            operations_to_send += request.operations[i]
+
+    response = requests.get(
         "http://smart-database-container:8002/get_real_time_data",
         json={
-        'start_date':str(request.start_date),
-        'end_date': str(request.end_date),
-        "kpi_name":before_last_underscore ,
-        'colum_name':after_last_underscore,
-        'machines':request.machines,
-        'operations':request.operations,
+            "start_date": str(request.start_date),
+            "end_date": str(request.end_date),
+            "kpi_name": before_last_underscore,
+            "column_name": after_last_underscore,
+            "machines": machines_to_send,
+            "operations": operations_to_send,
         },
         timeout=10,
     )
-    #json={"statement": insert_query, "data": data},
-    """
+    # json={"statement": insert_query, "data": data},
 
-    response = requests.get(
-        "http://smart-database-container:8002/query",
-        params={"statement": raw_query_statement},
-        timeout=10,
-    )
-
+    print(response.json())
     data = response.json()["data"]
 
     dataframe = pd.DataFrame(
@@ -279,11 +264,11 @@ def S(kpi: str, partial_result: dict[str, Any], **kwargs):
 
 
 def R(
-        kpi: str,
-        partial_result: dict[str, Any],
-        formulas_dict: dict[str, str],
-        request: KPIRequest,
-        **kwargs,
+    kpi: str,
+    partial_result: dict[str, Any],
+    formulas_dict: dict[str, str],
+    request: KPIRequest,
+    **kwargs,
 ):
     """Resolves a reference to another KPI by looking up the corresponding formula in the formulas dictionary and calculating it using the dynamic_kpi function.
 
@@ -304,28 +289,13 @@ def R(
 
     kpi_split = kpi.split("°")
 
-    internal_operation = {
-        "idle": "idle",
-        "working": "working",
-        "offline": "offline",
-    }
-
+    kpi_split = kpi.split("°")
     kpi_involved = kpi_split[1]
+    operation = kpi_split[4]
 
-    if kpi_split[4] in internal_operation:
-
-        if "internal_operation" in partial_result:
-            if not partial_result["internal_operation"]:
-                partial_result["internal_operation"] = [
-                    internal_operation[kpi_split[4]]
-                ]
-            else:
-                partial_result["internal_operation"] = partial_result[
-                    "internal_operation"
-                ].append(internal_operation[kpi_split[4]])
-
-        else:
-            partial_result["internal_operation"] = [internal_operation[kpi_split[4]]]
+    # save the operation if it is in the formula
+    if operation in grammar.operations:
+        partial_result.setdefault("internal_operation", []).append(operation)
 
     if kpi_involved in formulas_dict:
         return str(
@@ -344,10 +314,10 @@ def R(
 
 
 def D(
-        kpi: str,
-        partial_result: dict[str, Any],
-        request: KPIRequest,
-        **kwargs,
+    kpi: str,
+    partial_result: dict[str, Any],
+    request: KPIRequest,
+    **kwargs,
 ):
     """Executes a database query to retrieve data for a KPI and stores the results in the partial_result dictionary.
 
@@ -398,7 +368,7 @@ def C(kpi: str, partial_result: dict[str, Any], **kwargs):
     return "°" + key
 
 
-def compute(request: KPIRequest) -> KPIResponse:
+def compute(request: KPIRequest, chart: bool) -> KPIResponse:
     """Computes the value of a KPI based on the given request, including the validation of machines and operations,
     fetching the corresponding formula from the knowledge base, and performing the necessary calculations and
     aggregation.
@@ -406,6 +376,8 @@ def compute(request: KPIRequest) -> KPIResponse:
     :param request: The KPI request containing parameters such as KPI name, machines, operations, time range,
                     and time aggregation.
     :type request: :class:`KPIRequest`
+    :param chart: Whether to return a times series or not
+    :type chart: bool
     :return: A response containing a message with the computed result and the value of the KPI.
     :rtype: :class:`KPIResponse`
     :raises Exception: If an error occurs during the calculation process, such as invalid machines/operations,
@@ -446,18 +418,22 @@ def compute(request: KPIRequest) -> KPIResponse:
         return KPIResponse(message=repr(e), value=-1)
 
     # aggregated on time
-    result = finalize_mo(result, partial_result, request.time_aggregation)
+    if not chart:
+        result = finalize_mo(result, partial_result, request.time_aggregation)
+    else:
+        result = finalize_mo(result, partial_result, None)
 
     message = (
         f"The {aggregation} of KPI {name} for machines {request.machines} with operations {request.operations} "
         f"from {start_date} to {end_date} is {result}"
     )
 
-    _ = insert_aggregated_kpi(
-        request=request,
-        kpi_list=formulas.keys(),
-        value=result,
-    )
+    if not chart:
+        _ = insert_aggregated_kpi(
+            request=request,
+            kpi_list=formulas.keys(),
+            value=result,
+        )
 
     return KPIResponse(message=message, value=result)
 
@@ -490,7 +466,7 @@ def preprocessing(kpi_name: str, formulas_dict: dict[str, Any]) -> dict[str, Any
 
 
 def finalize_mo(
-        final_formula: str, partial_result: dict[str, Any], time_aggregation: str
+    final_formula: str, partial_result: dict[str, Any], time_aggregation: str
 ):
     """Finalizes the KPI calculation by applying the specified aggregation and time-based aggregation to the partial result.
 
@@ -505,7 +481,11 @@ def finalize_mo(
     """
     # final formula is of the for '°key' where key is the key of the dictionary with the partial result
     key = final_formula.replace("°", "")
-    result = getattr(np, "nan" + partial_result["agg"])(partial_result[key], axis=1)
+    result = partial_result[key]
+    if partial_result["agg"] != "":
+        result = getattr(np, "nan" + partial_result["agg"])(result, axis=1)
+    if time_aggregation is None:
+        return np.nan_to_num(result).tolist()
     return getattr(np, "nan" + time_aggregation)(result)
 
 
@@ -561,6 +541,7 @@ def check_machine_operation(machines, operations):
 
 
 # build query statement
+'''
 def build_query(request: KPIRequest, after_last_underscore, before_last_underscore):
     if request.machines and request.operations:
         conditions = " OR ".join(
@@ -588,3 +569,4 @@ def build_query(request: KPIRequest, after_last_underscore, before_last_undersco
     )
 
     return raw_query_statement
+'''

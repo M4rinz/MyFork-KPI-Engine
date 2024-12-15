@@ -15,6 +15,7 @@ class RealTimeKPI(BaseModel):
     """
     kpi: str
     column: str
+    operation: str
     values: list[float]
 
     @classmethod
@@ -31,5 +32,6 @@ class RealTimeKPI(BaseModel):
         return cls(
             kpi=data["kpi"],
             column=data["column"],
+            operation=data["operation"],
             values=data["values"],
         )

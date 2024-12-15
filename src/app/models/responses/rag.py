@@ -1,4 +1,5 @@
 from pydantic import BaseModel, validator
+from typing import Union
 
 
 class KPIResponse(BaseModel):
@@ -11,7 +12,7 @@ class KPIResponse(BaseModel):
     """
 
     message: str
-    value: float
+    value: Union[float, list[float]]
 
     @validator("message")
     def validate_message(cls, value):
@@ -26,19 +27,4 @@ class KPIResponse(BaseModel):
 
         if not isinstance(value, str):
             raise ValueError("Message must be a string.")
-        return value
-
-    @validator("value")
-    def validate_value(cls, value):
-        """Validates the value parameter to ensure it is a float or int.
-
-        :param value: The computed KPI value.
-        :type value: float or int
-        :raises ValueError: If the value is not a float or int.
-        :return: The validated value as a float.
-        :rtype: float
-        """
-        
-        if not isinstance(value, (int, float)):
-            raise ValueError("Value must be a float or int.")
         return value

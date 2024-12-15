@@ -1,5 +1,4 @@
 import json
-from datetime import datetime
 
 from pydantic import BaseModel
 
@@ -20,11 +19,11 @@ class RealTimeKPIResponse(BaseModel):
     """Represents a real-time KPI response, including a timestamp and a corresponding value.
 
     :param label: The timestamp of the KPI data.
-    :type label: datetime
+    :type label: str
     :param value: The value of the KPI at the specified timestamp.
     :type value: float
     """
-    label: datetime
+    label: str
     value: float
 
     def to_json(self):
