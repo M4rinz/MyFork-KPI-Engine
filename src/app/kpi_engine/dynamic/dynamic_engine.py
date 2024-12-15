@@ -92,17 +92,38 @@ def query_DB(kpi: str, request: KPIRequest, **kwargs) -> tuple[np.ndarray, np.nd
     else:
         raise ValueError(f"DB query - invalid DB reference: {kpi_split}")
 
-    raw_query_statement = build_query(
-        request, after_last_underscore, before_last_underscore
-    )
+    
+    machines_to_send = ""
+    for i in range(0,len(request.machines)):
+        if i < len(request.machines) - 1:
+            machines_to_send += request.machines[i] + ","
+        else:
+            machines_to_send += request.machines[i]
 
+    operations_to_send = ""
+    for i in range(0,len(request.operations)):
+        if i < len(request.operations) - 1:
+            operations_to_send += request.operations[i] + ","
+        else:
+            operations_to_send += request.operations[i]
+    
     response = requests.get(
-        "http://smart-database-container:8002/query",
-        params={"statement": raw_query_statement},
+        "http://smart-database-container:8002/get_real_time_data",
+        json={
+        'start_date':str(request.start_date),
+        'end_date': str(request.end_date),
+        "kpi_name":before_last_underscore ,
+        'column_name':after_last_underscore,
+        'machines':machines_to_send,
+        'operations':operations_to_send,
+        },
         timeout=10,
     )
-
+    #json={"statement": insert_query, "data": data},
+    
+    print(response.json())
     data = response.json()["data"]
+    
 
     dataframe = pd.DataFrame(
         data,
@@ -402,6 +423,7 @@ def check_machine_operation(machines, operations):
 
 
 # build query statement
+'''
 def build_query(request: KPIRequest, after_last_underscore, before_last_underscore):
     if request.machines and request.operations:
         conditions = " OR ".join(
@@ -429,3 +451,4 @@ def build_query(request: KPIRequest, after_last_underscore, before_last_undersco
     )
 
     return raw_query_statement
+'''

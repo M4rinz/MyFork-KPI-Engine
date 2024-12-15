@@ -82,35 +82,39 @@ class KPIEngine:
         self, real_time_kpis: list[RealTimeKPI], request: RealTimeKPIRequest
     ) -> RealTimeKPIResponse:
 
+        special=bool(self.evaluable_formula_info["particular"])
         # Convert real_time_kpis to numpy arrays
         for kpi in real_time_kpis:
             complete_name = f"{kpi.kpi}_{kpi.column}"
+            if special:
+                complete_name += f"_{kpi.operation}"
             if complete_name not in self.partial_result:
                 self.partial_result[complete_name] = np.empty((0, len(kpi.values)))
             self.partial_result[complete_name] = np.vstack(
                 [self.partial_result[complete_name], kpi.values]
             )
 
-        # Apply operations
-        for operation in self.evaluable_formula_info["operations_f"]:
-            column = operation["column"]
-            value = operation["value"]
-            self.partial_result[column] = self.partial_result[column][
-                self.partial_result[column] == value
-            ]
 
         # Set globals for involved KPIs
         involved_kpis = self.partial_result.keys()
         for base_kpi in involved_kpis:
-            globals()[base_kpi] = self.partial_result[base_kpi]
+            if not special:
+                globals()[base_kpi] = self.partial_result[base_kpi]
+            else:
+                # if it is particular we made the aggregation inside and not outside
+                aggregation = self.evaluable_formula_info["agg"]
+                globals()[base_kpi] = getattr(np, aggregation)(self.partial_result[base_kpi], axis=1)
 
         # Evaluate the formula
         formula = self.evaluable_formula_info["formula"]
         results = ne.evaluate(formula)
 
         # Aggregate the result
-        aggregation = self.evaluable_formula_info["agg"]
-        out = getattr(np, aggregation)(results, axis=1)
+        out=results
+        #we chech if it is particular so we make the final aggregation
+        if not special:
+            aggregation = self.evaluable_formula_info["agg"]
+            out = getattr(np, aggregation)(results, axis=1)
 
         time_aggregation = request.time_aggregation
         value = getattr(np, time_aggregation)(out)
