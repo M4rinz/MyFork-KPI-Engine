@@ -1,10 +1,7 @@
-app.models.requests package
+models.requests package
 ===========================
 
-Submodules
-----------
-
-app.models.requests.data\_processing module
+models.requests.data\_processing module
 -------------------------------------------
 
 .. automodule:: app.models.requests.data_processing
@@ -12,7 +9,7 @@ app.models.requests.data\_processing module
    :undoc-members:
    :show-inheritance:
 
-app.models.requests.gui module
+models.requests.gui module
 ------------------------------
 
 .. automodule:: app.models.requests.gui
@@ -20,7 +17,7 @@ app.models.requests.gui module
    :undoc-members:
    :show-inheritance:
 
-app.models.requests.rag module
+models.requests.rag module
 ------------------------------
 
 .. automodule:: app.models.requests.rag

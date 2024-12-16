@@ -5,7 +5,7 @@ Subpackages
 -----------
 
 .. toctree::
-   :maxdepth: 4
+   :maxdepth: 2
 
    app.api
    app.kpi_engine
@@ -16,7 +16,7 @@ Subpackages
 Submodules
 ----------
 
-app.main module
+main module
 ---------------
 
 .. automodule:: app.main
@@ -24,10 +24,3 @@ app.main module
    :undoc-members:
    :show-inheritance:
 
-Module contents
----------------
-
-.. automodule:: app
-   :members:
-   :undoc-members:
-   :show-inheritance:

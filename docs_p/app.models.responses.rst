@@ -1,10 +1,7 @@
-app.models.responses package
+models.responses package
 ============================
 
-Submodules
-----------
-
-app.models.responses.gui module
+models.responses.gui module
 -------------------------------
 
 .. automodule:: app.models.responses.gui
@@ -12,7 +9,7 @@ app.models.responses.gui module
    :undoc-members:
    :show-inheritance:
 
-app.models.responses.rag module
+models.responses.rag module
 -------------------------------
 
 .. automodule:: app.models.responses.rag

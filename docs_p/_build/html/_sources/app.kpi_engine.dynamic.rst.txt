@@ -1,10 +1,7 @@
-app.kpi\_engine.dynamic package
+kpi\_engine.dynamic package
 ===============================
 
-Submodules
-----------
-
-app.kpi\_engine.dynamic.dynamic\_engine module
+kpi\_engine.dynamic.dynamic\_engine module
 ----------------------------------------------
 
 .. automodule:: app.kpi_engine.dynamic.dynamic_engine

@@ -1,10 +1,7 @@
-app.services package
+services package
 ====================
 
-Submodules
-----------
-
-app.services.data\_processing module
+services.data\_processing module
 ------------------------------------
 
 .. automodule:: app.services.data_processing
@@ -12,7 +9,7 @@ app.services.data\_processing module
    :undoc-members:
    :show-inheritance:
 
-app.services.database module
+services.database module
 ----------------------------
 
 .. automodule:: app.services.database
@@ -20,7 +17,7 @@ app.services.database module
    :undoc-members:
    :show-inheritance:
 
-app.services.gui module
+services.gui module
 -----------------------
 
 .. automodule:: app.services.gui
@@ -28,7 +25,7 @@ app.services.gui module
    :undoc-members:
    :show-inheritance:
 
-app.services.knowledge\_base module
+services.knowledge\_base module
 -----------------------------------
 
 .. automodule:: app.services.knowledge_base

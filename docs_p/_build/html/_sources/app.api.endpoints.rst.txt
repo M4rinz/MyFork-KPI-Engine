@@ -1,10 +1,7 @@
-app.api.endpoints package
+api.endpoints package
 =========================
 
-Submodules
-----------
-
-app.api.endpoints.kpi module
+api.endpoints.kpi module
 ----------------------------
 
 .. automodule:: app.api.endpoints.kpi
@@ -12,7 +9,7 @@ app.api.endpoints.kpi module
    :undoc-members:
    :show-inheritance:
 
-app.api.endpoints.real\_time module
+api.endpoints.real\_time module
 -----------------------------------
 
 .. automodule:: app.api.endpoints.real_time
