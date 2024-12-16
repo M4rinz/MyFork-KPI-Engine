@@ -162,8 +162,6 @@ def query_DB(kpi: str, request: KPIRequest, **kwargs) -> tuple[np.ndarray, np.nd
             numpy_data.shape[0] // step, step, numpy_data.shape[1]
         )
 
-    
-
     return step_split, bottom
 
 
@@ -340,12 +338,11 @@ def compute(request: KPIRequest, chart: bool) -> KPIResponse:
     )
 
     if not chart:
-        _= insert_aggregated_kpi(
+        _ = insert_aggregated_kpi(
             request=request,
             kpi_list=formulas.keys(),
             value=result,
         )
-        
 
     return KPIResponse(message=message, value=result)
 
@@ -392,7 +389,7 @@ def keys_involved(kpi: str, partial_result: dict[str, Any]):
 def check_machine_operation(machines, operations):
     if isinstance(machines, str):
         try:
-            machines='"'+machines+'"'
+            machines = '"' + machines + '"'
             machine = get_closest_instances(machines)["instances"]
         except Exception as e:
             return KPIResponse(message=repr(e), value=-1)
