@@ -41,6 +41,15 @@ async def get_kpi(
 async def get_kpi_chart(
     request: KPIRequest,
 ) -> KPIResponse:
+    """
+    Handles requests to generate a KPI chart.
+
+    :param request: The details of the KPI request including name, machines, operations, and time range.
+    :type request: KPIRequest
+    :return: The computed KPI data for the chart.
+    :rtype: KPIResponse
+    :raises HTTPException: Raises a 404 error if the request is invalid or a 500 error for internal server issues.
+    """
     try:
         return compute(request, chart=True)
     except ValueError as e:

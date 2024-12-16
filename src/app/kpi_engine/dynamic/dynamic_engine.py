@@ -6,12 +6,12 @@ import numpy as np
 from nanoid import generate
 import requests
 
-import src.app.models.grammar as grammar
-import src.app.models.exceptions as exceptions
-from src.app.models.requests.rag import KPIRequest
-from src.app.models.responses.rag import KPIResponse
-from src.app.services.database import insert_aggregated_kpi
-from src.app.services.knowledge_base import (
+import app.models.grammar as grammar
+import app.models.exceptions as exceptions
+from app.models.requests.rag import KPIRequest
+from app.models.responses.rag import KPIResponse
+from app.services.database import insert_aggregated_kpi
+from app.services.knowledge_base import (
     get_kpi_formula,
     get_closest_instances,
     get_closest_kpi_formula,
@@ -103,6 +103,26 @@ def dynamic_kpi(
 
 
 def query_DB(kpi: str, request: KPIRequest, **kwargs) -> tuple[np.ndarray, np.ndarray]:
+    """
+    Queries the database for real-time data corresponding to a specific KPI, processes the data, 
+    and returns it in a split format based on the requested step.
+
+    The function splits the data into steps for time aggregation, reshapes it into a 3D numpy array, 
+    and handles any remainder data by returning it separately.
+
+    :param kpi: The KPI identifier, containing the name of the KPI and the database column reference.
+    :type kpi: str
+    :param request: The KPIRequest object containing the machines, operations, and time range for the query.
+    :type request: KPIRequest
+    :param kwargs: Additional keyword arguments (not used in this function but can be included for extensibility).
+    :return: A tuple containing two numpy arrays: 
+             - `step_split`: A 3D numpy array representing the data split by the given step.
+             - `bottom`: A numpy array containing the remainder of the data that doesn't fit into the step split.
+    :rtype: tuple[np.ndarray, np.ndarray]
+    :raises ValueError: If the KPI identifier is invalid and cannot be parsed.
+    :raises requests.exceptions.RequestException: If the request to the database fails.
+    :raises exceptions.EmptyQueryException: If the query returns no data.
+    """
     kpi_split = kpi.split("°")[1]
 
     match = re.search(r"^(.*)_(.+)$", kpi_split)
@@ -507,6 +527,21 @@ def keys_involved(kpi: str, partial_result: dict[str, Any]):
 
 
 def check_machine_operation(machines, operations):
+    """
+    Validates and adjusts the relationship between machines and operations.
+
+    Ensures that the number of machines matches the number of operations. 
+    If a single machine string is provided, it resolves to the closest instances and adjusts the operations list if necessary. 
+    Handles mismatches by attempting reconciliation or returning an error response.
+
+    :param machines: A string representing a single machine or a list of machine names.
+    :type machines: str or list
+    :param operations: A list of operations associated with the machines.
+    :type operations: list
+    :return: A tuple of validated and adjusted machines and operations or an error response.
+    :rtype: tuple or KPIResponse
+    :raises Exception: If resolving a machine string to its instances fails.
+    """
     if isinstance(machines, str):
         try:
             machine = get_closest_instances(machines)["instances"]

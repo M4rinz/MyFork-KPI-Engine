@@ -1,9 +1,8 @@
 # this clean the formulas that we get from the KB
 import re
 from typing import Any
-
-from src.app.models import exceptions
-from src.app.services.knowledge_base import get_closest_kpi_formula, get_kpi_formula
+from app.models import exceptions
+from app.services.knowledge_base import get_closest_kpi_formula, get_kpi_formula
 
 
 def clean_placeholders(formulas: dict[str, str]) -> (dict[str, str], dict[int, str]):
@@ -144,7 +143,7 @@ def to_evaluable(formula: str):
     It transforms the binary operations in a parsable form for the numexpr library.
 
     The function looks for specific operator patterns in the formula, converts them to the corresponding Python operators,
-    and handles constants (e.g., "C°[number]°") by replacing them with the actual numeric value.
+    and handles constants by replacing them with the actual numeric value.
 
     :param formula: The formula string to be transformed into a numexpr-compatible format.
     :type formula: str
@@ -211,12 +210,13 @@ def to_evaluable(formula: str):
 
 def extract_names(formula_info: dict[str, Any]) -> list[str]:
     """
-    Extracts the names from an expression. The function finds all alphanumeric sequences that represent
-    variable names and ignores pure numbers.
+    Extracts variable names from an expression in the formula. The function identifies all alphanumeric sequences
+    that represent variable names, ignoring pure numbers.
 
-    :param formula_info: The expression to extract the names from
+    :param formula_info: A dictionary containing the formula and associated operations.
     :type formula_info: dict
-    :return The list of names extracted from the expression, avoiding pure numbers
+    :return: A list of names extracted from the formula, excluding pure numbers.
+    :rtype: list[str]
     """
     expression = formula_info["formula"]
     operations = formula_info["operations_f"]

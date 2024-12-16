@@ -5,13 +5,13 @@ from fastapi import APIRouter, WebSocket
 from threading import Event
 import os
 
-from src.app.kpi_engine.kpi_engine import KPIEngine
-from src.app.kpi_engine.regexp import prepare_for_real_time
-from src.app.models.requests.data_processing import KPIStreamingRequest
-from src.app.models.requests.gui import RealTimeKPIRequest
-from src.app.models.responses.gui import RealTimeResponse
-from src.app.services.data_processing import connect_to_publisher
-from src.app.utils.kafka_admin import delete_kafka_topic
+from app.kpi_engine.kpi_engine import KPIEngine
+from app.kpi_engine.regexp import prepare_for_real_time
+from app.models.requests.data_processing import KPIStreamingRequest
+from app.models.requests.gui import RealTimeKPIRequest
+from app.models.responses.gui import RealTimeResponse
+from app.services.data_processing import connect_to_publisher
+from app.utils.kafka_admin import delete_kafka_topic
 
 router = APIRouter()
 
@@ -26,6 +26,18 @@ KAFKA_PORT = os.getenv("KAFKA_PORT")
 
 @router.websocket("/")
 async def real_time_session(websocket: WebSocket) -> RealTimeResponse:
+    """
+    Manages a real-time KPI WebSocket session.
+
+    This function handles incoming WebSocket connections, allowing the client to start or stop 
+    a real-time KPI session. It validates incoming messages and processes requests to either 
+    initialize a session or terminate it. Invalid messages are met with an error response.
+
+    :param websocket: The WebSocket connection for client-server communication.
+    :type websocket: WebSocket
+    :return: A response indicating the result of the WebSocket operation.
+    :rtype: RealTimeResponse
+    """
     await websocket.accept()
 
     while True:
@@ -51,6 +63,20 @@ async def real_time_session(websocket: WebSocket) -> RealTimeResponse:
 async def handle_real_time_session(
     websocket: WebSocket, request: RealTimeKPIRequest
 ) -> RealTimeResponse:
+    """
+    Initiates and manages a real-time KPI session.
+
+    This function validates the incoming request, prepares the necessary configurations for 
+    KPI computation, and starts the Kafka consumer to process real-time data. It handles 
+    errors during setup and ensures a proper session workflow.
+
+    :param websocket: The WebSocket connection used for real-time communication.
+    :type websocket: WebSocket
+    :param request: Details of the KPI request including KPI name, machines, operations, and other parameters.
+    :type request: RealTimeKPIRequest
+    :return: A response indicating the success or failure of the session initiation.
+    :rtype: RealTimeResponse
+    """
     global consumer_task, stop_event, kpi_engine
 
     if consumer_task and not consumer_task.done():
