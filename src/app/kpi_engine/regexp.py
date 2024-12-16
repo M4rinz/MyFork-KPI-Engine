@@ -1,46 +1,45 @@
 # this clean the formulas that we get from the KB
 import re
+from typing import Any
 
 from src.app.models import exceptions
 from src.app.services.knowledge_base import get_closest_kpi_formula, get_kpi_formula
 
 
-def clean_placeholders(formulas: dict[str, str]):
+def clean_placeholders(formulas: dict[str, str]) -> (dict[str, str], dict[int, str]):
     """
     Cleans the formula from the placeholders used in the KB. The placeholders are as °T°m°o, ...
     When it encounters operations such as idle, working, offline, it saves them in a list.
 
     :param formulas: The formulas dictionary to clean
-    :return The cleaned formulas dictionary and the operations list
+    :return: The cleaned formulas dictionary and the operations list
     """
     cleaned_formulas = {}
-    operations = []
+    formula_operations = {}
 
+    # Define a pattern to match placeholders
+    placeholder_pattern = re.compile(r"°[tT]°m°(idle|working|offline)°")
+
+    # Iterate through the formulas dictionary
     for key, formula in formulas.items():
+        match_count = 0
 
-        # Search and remove specific placeholders
-        placeholders = {
-            "°T°m°idle°": "idle",
-            "°T°m°working°": "working",
-            "°T°m°offline°": "offline",
-            "°T°M°idle°": "idle",
-            "°T°M°working°": "working",
-            "°T°M°offline°": "offline",
-        }
+        # Find all matches of the pattern in the formula
+        for match in placeholder_pattern.finditer(formula):
+            match_count += 1
+            operation = match.group(1)  # Extract the operation (working, idle, offline)
+            formula_operations[match_count] = operation
 
-        for placeholder, operation in placeholders.items():
-            if placeholder in formula:
-                operations.append(operation)
-                formula = formula.replace(placeholder, "")
+        # Remove all matched placeholders from the formula
+        cleaned_formula = placeholder_pattern.sub("", formula)
 
         # Remove other placeholders
-        formula = re.sub(r"°t°m°o°", "", formula)
-        formula = re.sub(r"°T°m°o°", "", formula)
+        cleaned_formula = re.sub(r"°[tT]°m°o°", "", cleaned_formula)
 
-        # Save the cleaned formula with no wrapping spaces
-        cleaned_formulas[key] = formula.strip()
+        # Save the cleaned formula
+        cleaned_formulas[key] = cleaned_formula.strip()
 
-    return cleaned_formulas, operations
+    return cleaned_formulas, formula_operations
 
 
 def remove_aggregations(result: dict[str, str]) -> dict[str, str]:
@@ -191,19 +190,23 @@ def to_evaluable(formula: str):
     return formula.strip()
 
 
-def extract_names(expression: str) -> list[str]:
+def extract_names(formula_info: dict[str, Any]) -> list[str]:
     """
     Extracts the names from an expression.
 
-    :param expression: The expression to extract the names from
+    :param formula_info: The expression to extract the names from
     :return The list of names extracted from the expression, avoiding pure numbers
     """
+    expression = formula_info["formula"]
+    operations = formula_info["operations_f"]
     # Pattern to find valid names: letters, numbers and underscore
     pattern = re.compile(r"\b[a-zA-Z_]\w*\b")  # we don't mach pure numbers
     names = pattern.findall(expression)
 
-    # we exclude the 100 value
+    formula_info["formula"] = replace_operations_in_formula(expression, operations)
+
     filtered_names = [name for name in names if not name.isdigit()]
+
     return filtered_names
 
 
@@ -226,7 +229,7 @@ def prepare_for_real_time(kpi_name: str) -> (list[str], dict[str, str]):
         most_general_formula_key = next(iter(cleaned_formulas))
         formula = cleaned_formulas[most_general_formula_key]  # most general formula
         evaluable_formula = transform_formula(formula, cleaned_formulas, operations)
-        involved_kpis = extract_names(evaluable_formula["formula"])
+        involved_kpis = extract_names(evaluable_formula)
 
     except exceptions.KPIFormulaNotFoundException() as e:
         print(f"Error getting KPI database references: {e}")
@@ -236,7 +239,7 @@ def prepare_for_real_time(kpi_name: str) -> (list[str], dict[str, str]):
 
 
 def transform_formula(
-    formula: str, formulas: dict[str, str], operation_IWO: list[str]
+    formula: str, formulas: dict[str, str], operation_IWO: dict[str:Any]
 ) -> dict[str, str]:
     """
     Takes a formula and its sub formulas and transforms it in a parsable form for the numexpr library.
@@ -248,6 +251,13 @@ def transform_formula(
     """
     result = {}
 
+    # save in the result the operations idle working offline, if present
+    result["operations_f"] = operation_IWO
+    # we catch if the formula has a particular structure with no
+    if not operation_IWO:
+        result["particular"] = 0
+    else:
+        result["particular"] = 1
     # substitution of the R° references with their formula in the formulas dict
     formula = re.sub(r"R°(\w+)", lambda match: f"{formulas[match.group(1)]}", formula)
     # remove the D° from the formula
@@ -256,11 +266,35 @@ def transform_formula(
     # remove the spaces
     formula = "".join(formula.split())
     result["formula"] = formula
-    # save in the result the operations idle working offline, if present
-    result["operations_f"] = operation_IWO
     # remove the inner aggregations after saving the outermost one
     result = remove_aggregations(result)
 
     # then if in the formula there are pairwise operation then transform in a parsable formula
     result["formula"] = to_evaluable(result["formula"])
     return result
+
+
+def replace_operations_in_formula(formula: str, mapping: dict[int, str]) -> str:
+    """
+    Replaces placeholders in the formula based on a mapping of positions to operation types.
+
+    :param formula: The formula string to modify.
+    :param mapping: A dictionary mapping placeholder positions to operation types.
+    :param agg: The aggregation function to apply (e.g., 'sum').
+    :return: The modified formula with placeholders replaced.
+    """
+
+    # Generalize replacement for variable names (alphanumeric and underscores) and append the operation suffix
+    def replacement(match):
+        keyword = match.group(0)  # Match the keyword (e.g., "time_sum")
+        position = replacement.counter + 1
+        replacement.counter += 1
+        operation = mapping.get(position, "")
+        return f"{keyword}_{operation}" if operation else keyword
+
+    replacement.counter = 0
+
+    # Match variable names (words starting with a letter or underscore and followed by word characters)
+    formula = re.sub(r"\b[a-zA-Z_][a-zA-Z0-9_]*\b", replacement, formula)
+
+    return formula

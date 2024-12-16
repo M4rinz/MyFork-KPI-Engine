@@ -92,31 +92,34 @@ def query_DB(kpi: str, request: KPIRequest, **kwargs) -> tuple[np.ndarray, np.nd
     else:
         raise ValueError(f"DB query - invalid DB reference: {kpi_split}")
 
-    raw_query_statement = build_query(
-        request, after_last_underscore, before_last_underscore
-    )
+    machines_to_send = ""
+    for i in range(0, len(request.machines)):
+        if i < len(request.machines) - 1:
+            machines_to_send += request.machines[i] + ","
+        else:
+            machines_to_send += request.machines[i]
 
-    """
-    response = requests.post(
+    operations_to_send = ""
+    for i in range(0, len(request.operations)):
+        if i < len(request.operations) - 1:
+            operations_to_send += request.operations[i] + ","
+        else:
+            operations_to_send += request.operations[i]
+
+    response = requests.get(
         "http://smart-database-container:8002/get_real_time_data",
         json={
-        'start_date':str(request.start_date),
-        'end_date': str(request.end_date),
-        "kpi_name":before_last_underscore ,
-        'colum_name':after_last_underscore,
-        'machines':request.machines,
-        'operations':request.operations,
+            "start_date": str(request.start_date),
+            "end_date": str(request.end_date),
+            "kpi_name": before_last_underscore,
+            "asset_id": "",
+            "machines": machines_to_send,
+            "operations": operations_to_send,
+            "column_name": after_last_underscore,
         },
         timeout=10,
     )
-    #json={"statement": insert_query, "data": data},
-    """
-
-    response = requests.get(
-        "http://smart-database-container:8002/query",
-        params={"statement": raw_query_statement},
-        timeout=10,
-    )
+    # json={"statement": insert_query, "data": data},
 
     data = response.json()["data"]
 
@@ -226,29 +229,13 @@ def R(
     **kwargs,
 ):
 
-    internal_operation = {
-        "idle": "idle",
-        "working": "working",
-        "offline": "offline",
-    }
-
     kpi_split = kpi.split("°")
     kpi_involved = kpi_split[1]
+    operation = kpi_split[4]
 
-    if kpi_split[4] in internal_operation:
-
-        if "internal_operation" in partial_result:
-            if not partial_result["internal_operation"]:
-                partial_result["internal_operation"] = [
-                    internal_operation[kpi_split[4]]
-                ]
-            else:
-                partial_result["internal_operation"] = partial_result[
-                    "internal_operation"
-                ].append(internal_operation[kpi_split[4]])
-
-        else:
-            partial_result["internal_operation"] = [internal_operation[kpi_split[4]]]
+    # save the operation if it is in the formula
+    if operation in grammar.operations:
+        partial_result.setdefault("internal_operation", []).append(operation)
 
     if kpi_involved in formulas_dict:
         return str(
@@ -350,11 +337,12 @@ def compute(request: KPIRequest, chart: bool) -> KPIResponse:
         f"from {start_date} to {end_date} is {result}"
     )
 
-    _ = insert_aggregated_kpi(
-        request=request,
-        kpi_list=formulas.keys(),
-        value=result,
-    )
+    if not chart:
+        _ = insert_aggregated_kpi(
+            request=request,
+            kpi_list=formulas.keys(),
+            value=result,
+        )
 
     return KPIResponse(message=message, value=result)
 
@@ -382,9 +370,11 @@ def finalize_mo(
 ):
     # final formula is of the for '°key' where key is the key of the dictionary with the partial result
     key = final_formula.replace("°", "")
-    result = getattr(np, "nan" + partial_result["agg"])(partial_result[key], axis=1)
+    result = partial_result[key]
+    if partial_result["agg"] != "":
+        result = getattr(np, "nan" + partial_result["agg"])(result, axis=1)
     if time_aggregation is None:
-        return result
+        return np.nan_to_num(result).tolist()
     return getattr(np, "nan" + time_aggregation)(result)
 
 
@@ -399,6 +389,7 @@ def keys_involved(kpi: str, partial_result: dict[str, Any]):
 def check_machine_operation(machines, operations):
     if isinstance(machines, str):
         try:
+            machines = '"' + machines + '"'
             machine = get_closest_instances(machines)["instances"]
         except Exception as e:
             return KPIResponse(message=repr(e), value=-1)
@@ -431,6 +422,7 @@ def check_machine_operation(machines, operations):
 
 
 # build query statement
+'''
 def build_query(request: KPIRequest, after_last_underscore, before_last_underscore):
     if request.machines and request.operations:
         conditions = " OR ".join(
@@ -458,3 +450,4 @@ def build_query(request: KPIRequest, after_last_underscore, before_last_undersco
     )
 
     return raw_query_statement
+'''

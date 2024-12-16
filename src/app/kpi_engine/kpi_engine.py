@@ -54,7 +54,6 @@ class KPIEngine:
     async def start_consumer(self):
         try:
             await self.consumer.start()
-            print("Consumer started successfully")
         except Exception as e:
             print(f"Error starting consumer: {e}")
             return {"Error": f"Error starting consumer: {str(e)}"}
@@ -70,7 +69,6 @@ class KPIEngine:
 
                 # compute real time kpis
                 response = self.compute_real_time(real_time_kpis, request)
-                print("Computed real-time KPI: ", response.to_json())
 
                 # send the computed result to the GUI via websocket
                 await websocket.send_json(response.to_json())
@@ -84,45 +82,43 @@ class KPIEngine:
         self, real_time_kpis: list[RealTimeKPI], request: RealTimeKPIRequest
     ) -> RealTimeKPIResponse:
 
-        print("Computing real-time KPIs...")
-        print("Real-time KPIs: ", real_time_kpis)
-        print("Formula info", self.evaluable_formula_info)
-
+        special = bool(self.evaluable_formula_info["particular"])
         # Convert real_time_kpis to numpy arrays
         for kpi in real_time_kpis:
             complete_name = f"{kpi.kpi}_{kpi.column}"
+            if special:
+                complete_name += f"_{kpi.operation}"
             if complete_name not in self.partial_result:
                 self.partial_result[complete_name] = np.empty((0, len(kpi.values)))
             self.partial_result[complete_name] = np.vstack(
                 [self.partial_result[complete_name], kpi.values]
             )
 
-        # Apply operations
-        for operation in self.evaluable_formula_info["operations_f"]:
-            column = operation["column"]
-            value = operation["value"]
-            self.partial_result[column] = self.partial_result[column][
-                self.partial_result[column] == value
-            ]
-
         # Set globals for involved KPIs
         involved_kpis = self.partial_result.keys()
         for base_kpi in involved_kpis:
-            globals()[base_kpi] = self.partial_result[base_kpi]
+            if not special:
+                globals()[base_kpi] = self.partial_result[base_kpi]
+            else:
+                # if it is particular we made the aggregation inside and not outside
+                aggregation = self.evaluable_formula_info["agg"]
+                globals()[base_kpi] = getattr(np, aggregation)(
+                    self.partial_result[base_kpi], axis=1
+                )
 
         # Evaluate the formula
         formula = self.evaluable_formula_info["formula"]
         results = ne.evaluate(formula)
 
         # Aggregate the result
-        aggregation = self.evaluable_formula_info["agg"]
-        out = getattr(np, aggregation)(results, axis=1)
+        out = results
+        # we check if it is particular, so we make the final aggregation
+        if not special:
+            aggregation = self.evaluable_formula_info["agg"]
+            out = getattr(np, aggregation)(results, axis=1)
 
         time_aggregation = request.time_aggregation
         value = getattr(np, time_aggregation)(out)
-
-        print("Computed value: ", value)
-        print("Computed label: ", str(datetime.now()))
 
         response = RealTimeKPIResponse(label=str(datetime.now()), value=value)
 
@@ -132,14 +128,13 @@ class KPIEngine:
         try:
             if self.consumer:
                 await self.consumer.stop()
-                print("Kafka consumer stopped.")
-
-            await delete_kafka_topic(self._topic, f"{self._servers}:{self._topic}")
 
             response = requests.get(
                 "http://data-preprocessing-container:8003/real-time/stop",
             )
             response.raise_for_status()
+
+            await delete_kafka_topic(self._topic, f"{self._servers}:{self._port}")
 
         except Exception as e:
             print(f"Error stopping connections: {e}")

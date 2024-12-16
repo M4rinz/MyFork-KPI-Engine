@@ -11,9 +11,3 @@ class KPIResponse(BaseModel):
         if not isinstance(value, str):
             raise ValueError("Message must be a string.")
         return value
-
-    @validator("value")
-    def validate_value(cls, value):
-        if not isinstance(value, (int, float)):
-            raise ValueError("Value must be a float or int.")
-        return value
