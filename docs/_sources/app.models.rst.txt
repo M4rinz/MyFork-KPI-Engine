@@ -1,8 +1,5 @@
-app.models package
+models package
 ==================
-
-Subpackages
------------
 
 .. toctree::
    :maxdepth: 4
@@ -10,10 +7,8 @@ Subpackages
    app.models.requests
    app.models.responses
 
-Submodules
-----------
 
-app.models.exceptions module
+models.exceptions module
 ----------------------------
 
 .. automodule:: app.models.exceptions
@@ -21,7 +16,7 @@ app.models.exceptions module
    :undoc-members:
    :show-inheritance:
 
-app.models.grammar module
+models.grammar module
 -------------------------
 
 .. automodule:: app.models.grammar
@@ -29,7 +24,7 @@ app.models.grammar module
    :undoc-members:
    :show-inheritance:
 
-app.models.real\_time\_kpi module
+models.real\_time\_kpi module
 ---------------------------------
 
 .. automodule:: app.models.real_time_kpi

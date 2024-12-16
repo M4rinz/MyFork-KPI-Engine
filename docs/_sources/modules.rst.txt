@@ -1,6 +1,5 @@
-app
-===
-
+Modules
+========
 .. toctree::
    :maxdepth: 4
 

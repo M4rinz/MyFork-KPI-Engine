@@ -6,7 +6,7 @@
   <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>app.api package &mdash; KPI Engine  documentation</title>
+  <title>api package &mdash; KPI Engine  documentation</title>
       <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=80d5e7a1" />
       <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=e59714d7" />
 
@@ -19,7 +19,7 @@
     <script src="_static/js/theme.js"></script>
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
-    <link rel="next" title="app.api.endpoints package" href="app.api.endpoints.html" />
+    <link rel="next" title="api.endpoints package" href="app.api.endpoints.html" />
     <link rel="prev" title="app package" href="app.html" /> 
 </head>
 
@@ -44,19 +44,17 @@
         </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
               <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
 <ul class="current">
-<li class="toctree-l1 current"><a class="reference internal" href="modules.html">app</a><ul class="current">
 <li class="toctree-l2 current"><a class="reference internal" href="app.html">app package</a><ul class="current">
 <li class="toctree-l3 current"><a class="reference internal" href="app.html#subpackages">Subpackages</a><ul class="current">
-<li class="toctree-l4 current"><a class="current reference internal" href="#">app.api package</a></li>
-<li class="toctree-l4"><a class="reference internal" href="app.kpi_engine.html">app.kpi_engine package</a></li>
-<li class="toctree-l4"><a class="reference internal" href="app.models.html">app.models package</a></li>
-<li class="toctree-l4"><a class="reference internal" href="app.services.html">app.services package</a></li>
-<li class="toctree-l4"><a class="reference internal" href="app.utils.html">app.utils package</a></li>
+<li class="toctree-l4 current"><a class="current reference internal" href="#">api package</a></li>
+<li class="toctree-l4"><a class="reference internal" href="app.kpi_engine.html">kpi_engine package</a></li>
+<li class="toctree-l4"><a class="reference internal" href="app.models.html">models package</a></li>
+<li class="toctree-l4"><a class="reference internal" href="app.services.html">services package</a></li>
+<li class="toctree-l4"><a class="reference internal" href="app.utils.html">utils package</a></li>
 </ul>
 </li>
 <li class="toctree-l3"><a class="reference internal" href="app.html#submodules">Submodules</a></li>
-<li class="toctree-l3"><a class="reference internal" href="app.html#module-app.main">app.main module</a></li>
-<li class="toctree-l3"><a class="reference internal" href="app.html#module-app">Module contents</a></li>
+<li class="toctree-l3"><a class="reference internal" href="app.html#module-app.main">main module</a></li>
 </ul>
 </li>
 </ul>
@@ -77,9 +75,8 @@
           <div role="navigation" aria-label="Page navigation">
   <ul class="wy-breadcrumbs">
       <li><a href="index.html" class="icon icon-home" aria-label="Home"></a></li>
-          <li class="breadcrumb-item"><a href="modules.html">app</a></li>
           <li class="breadcrumb-item"><a href="app.html">app package</a></li>
-      <li class="breadcrumb-item active">app.api package</li>
+      <li class="breadcrumb-item active">api package</li>
       <li class="wy-breadcrumbs-aside">
             <a href="_sources/app.api.rst.txt" rel="nofollow"> View page source</a>
       </li>
@@ -89,41 +86,27 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
              
-  <section id="app-api-package">
-<h1>app.api package<a class="headerlink" href="#app-api-package" title="Link to this heading"></a></h1>
-<section id="subpackages">
-<h2>Subpackages<a class="headerlink" href="#subpackages" title="Link to this heading"></a></h2>
+  <section id="api-package">
+<h1>api package<a class="headerlink" href="#api-package" title="Link to this heading"></a></h1>
 <div class="toctree-wrapper compound">
 <ul>
-<li class="toctree-l1"><a class="reference internal" href="app.api.endpoints.html">app.api.endpoints package</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="app.api.endpoints.html#submodules">Submodules</a></li>
-<li class="toctree-l2"><a class="reference internal" href="app.api.endpoints.html#module-app.api.endpoints.kpi">app.api.endpoints.kpi module</a><ul>
+<li class="toctree-l1"><a class="reference internal" href="app.api.endpoints.html">api.endpoints package</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="app.api.endpoints.html#module-app.api.endpoints.kpi">api.endpoints.kpi module</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="app.api.endpoints.html#app.api.endpoints.kpi.get_kpi"><code class="docutils literal notranslate"><span class="pre">get_kpi()</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="app.api.endpoints.html#app.api.endpoints.kpi.get_kpi_chart"><code class="docutils literal notranslate"><span class="pre">get_kpi_chart()</span></code></a></li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="app.api.endpoints.html#module-app.api.endpoints.real_time">app.api.endpoints.real_time module</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="app.api.endpoints.html#module-app.api.endpoints.real_time">api.endpoints.real_time module</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="app.api.endpoints.html#app.api.endpoints.real_time.handle_real_time_session"><code class="docutils literal notranslate"><span class="pre">handle_real_time_session()</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="app.api.endpoints.html#app.api.endpoints.real_time.real_time_session"><code class="docutils literal notranslate"><span class="pre">real_time_session()</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="app.api.endpoints.html#app.api.endpoints.real_time.shutdown_event"><code class="docutils literal notranslate"><span class="pre">shutdown_event()</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="app.api.endpoints.html#app.api.endpoints.real_time.stop_consumer"><code class="docutils literal notranslate"><span class="pre">stop_consumer()</span></code></a></li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="app.api.endpoints.html#module-app.api.endpoints">Module contents</a></li>
 </ul>
 </li>
 </ul>
 </div>
-</section>
-<section id="submodules">
-<h2>Submodules<a class="headerlink" href="#submodules" title="Link to this heading"></a></h2>
-</section>
-<section id="module-app.api.router">
-<span id="app-api-router-module"></span><h2>app.api.router module<a class="headerlink" href="#module-app.api.router" title="Link to this heading"></a></h2>
-</section>
-<section id="module-app.api">
-<span id="module-contents"></span><h2>Module contents<a class="headerlink" href="#module-app.api" title="Link to this heading"></a></h2>
-</section>
 </section>
 
 
@@ -131,7 +114,7 @@
           </div>
           <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
         <a href="app.html" class="btn btn-neutral float-left" title="app package" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
-        <a href="app.api.endpoints.html" class="btn btn-neutral float-right" title="app.api.endpoints package" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+        <a href="app.api.endpoints.html" class="btn btn-neutral float-right" title="api.endpoints package" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
     </div>
 
   <hr/>

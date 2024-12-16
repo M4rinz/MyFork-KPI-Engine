@@ -1,10 +1,7 @@
-app.utils package
+utils package
 =================
 
-Submodules
-----------
-
-app.utils.kafka\_admin module
+utils.kafka\_admin module
 -----------------------------
 
 .. automodule:: app.utils.kafka_admin
