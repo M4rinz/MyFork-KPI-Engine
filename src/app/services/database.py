@@ -9,25 +9,22 @@ def insert_aggregated_kpi(
     kpi_list: list,
     value: np.float64,
 ):
-    insert_query = """
-        INSERT INTO aggregated_kpi (name, aggregated_value, begin_datetime, end_datetime, kpi_list, operations, machines, step)
-        VALUES (%s, %s, %s, %s, %s, %s, %s, %s);
-    """
+    
+    data = {
+        'name': request.name,
+        'aggregated_value' : value.item(),
+        'begin_datetime' : str(request.start_date),
+        'end_datetime' : str(request.end_date),
+        'kpi_list' : list(kpi_list),
+        'operations' : request.operations,
+        'machines' : request.machines,
+        'step' : request.step,
+    }
 
-    data = (
-        request.name,
-        value.item(),
-        str(request.start_date),
-        str(request.end_date),
-        list(kpi_list),
-        request.operations,
-        request.machines,
-        request.step,
-    )
-
-    print("Inserting aggregated KPI data into the database...", insert_query, data)
+    print("Inserting aggregated KPI data into the database...", data)
 
     return requests.post(
-        "http://smart-database-container:8002/insert",
+        "http://smart-database-container:8002/insert_aggregated_kpi",
+        json = data,
         timeout=5,
     )
