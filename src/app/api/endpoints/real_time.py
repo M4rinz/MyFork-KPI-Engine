@@ -1,17 +1,17 @@
-# src/app/endpoints/real_time.py
+""" Real-time KPI computation endpoint."""
 
 import asyncio
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect
 from threading import Event
 import os
 
-from app.kpi_engine.kpi_engine import KPIEngine
-from app.kpi_engine.regexp import prepare_for_real_time
-from app.models.requests.data_processing import KPIStreamingRequest
-from app.models.requests.gui import RealTimeKPIRequest
-from app.models.responses.gui import RealTimeResponse
-from app.services.data_processing import connect_to_publisher
-from app.utils.kafka_admin import delete_kafka_topic
+from src.app.kpi_engine.kpi_engine import KPIEngine
+from src.app.kpi_engine.regexp import prepare_for_real_time
+from src.app.models.requests.data_processing import KPIStreamingRequest
+from src.app.models.requests.gui import RealTimeKPIRequest
+from src.app.models.responses.gui import RealTimeResponse
+from src.app.services.data_processing import connect_to_publisher
+from src.app.utils.kafka_admin import delete_kafka_topic
 
 router = APIRouter()
 
@@ -29,13 +29,14 @@ async def real_time_session(websocket: WebSocket) -> RealTimeResponse:
     """
     Manages a real-time KPI WebSocket session.
 
-    This function handles incoming WebSocket connections, allowing the client to start or stop 
-    a real-time KPI session. It validates incoming messages and processes requests to either 
-    initialize a session or terminate it. Invalid messages are met with an error response.
+    This function handles incoming WebSocket connections, allowing the client to start or stop
+    a real-time KPI session. It validates incoming messages and processes requests to either
+    initialize a session or terminate it. Invalid messages will result in the WebSocket connection
+    being closed. The session is managed by the `handle_real_time_session` function.
 
     :param websocket: The WebSocket connection for client-server communication.
     :type websocket: WebSocket
-    :return: A response indicating the result of the WebSocket operation.
+    :return: A response indicating the result of the WebSocket operation (informative).
     :rtype: RealTimeResponse
     """
     await websocket.accept()
@@ -69,9 +70,10 @@ async def handle_real_time_session(
     """
     Initiates and manages a real-time KPI session.
 
-    This function validates the incoming request, prepares the necessary configurations for 
-    KPI computation, and starts the Kafka consumer to process real-time data. It handles 
-    errors during setup and ensures a proper session workflow.
+    This function validates the incoming request, prepares the necessary configurations for
+    KPI computation, and starts the AIOKafkaConsumer to process real-time data. The consumer is started asynchronously
+    in a separate task, allowing the WebSocket connection to remain open for real-time communication and the other
+    endpoints to be called concurrently. The session can be stopped by sending a "stop" message through the WebSocket.
 
     :param websocket: The WebSocket connection used for real-time communication.
     :type websocket: WebSocket
@@ -131,8 +133,9 @@ async def stop_consumer() -> RealTimeResponse:
     """
     Stops the currently running Kafka consumer.
 
-    This endpoint stops the real-time KPI session by signaling the Kafka consumer to
-    terminate, processing any remaining data, and closing all active connections.
+    This endpoint stops the real-time KPI session by signaling the Kafka consumer (in the :class:`KPIEngine
+    <src.app.kpi_engine.kpi_engine.KPIEngine>` to terminate, processing any remaining data, and closing all active
+    connections.
 
     :return: A response indicating the success or failure of stopping the consumer.
     :rtype: RealTimeResponse

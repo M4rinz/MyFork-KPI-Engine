@@ -1,8 +1,7 @@
 import numpy as np
 import requests
 
-#from src.app.models.requests.rag import KPIRequest
-from app.models.requests.rag import KPIRequest
+from src.app.models.requests.rag import KPIRequest
 
 
 def insert_aggregated_kpi(
@@ -10,7 +9,8 @@ def insert_aggregated_kpi(
     kpi_list: list,
     value: np.float64,
 ):
-    """Inserts the aggregated KPI result into the database.
+    """
+    Inserts the aggregated KPI result into the database.
 
     This function constructs an SQL `INSERT` query to store the aggregated KPI data
     into a database. It inserts details such as the KPI name, the aggregated value,
@@ -26,11 +26,6 @@ def insert_aggregated_kpi(
     :return: The response from the database after insertion.
     :rtype: requests.Response
     """
-    insert_query = """
-        INSERT INTO aggregated_kpi (name, aggregated_value, begin_datetime, end_datetime, kpi_list, operations, machines, step)
-        VALUES (%s, %s, %s, %s, %s, %s, %s, %s);
-    """
-
     data = {
         "name": request.name,
         "aggregated_value": value.item(),

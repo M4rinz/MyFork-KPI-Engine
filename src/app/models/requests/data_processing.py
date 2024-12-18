@@ -4,7 +4,10 @@ from pydantic import BaseModel
 
 
 class KPIStreamingRequest(BaseModel):
-    """Represents a request to stream KPIs for specific machines and operations.
+    """
+    Represents a request to stream KPIs for specific machines and operations.
+    This request is used to provide the data preprocessing container with the necessary information to start
+    an AIOKafkaConsumer stream.
 
     :param kpis: A list of KPIs to be streamed.
     :type kpis: list[str]
@@ -13,13 +16,15 @@ class KPIStreamingRequest(BaseModel):
     :param operations: A list of operations related to the KPI request.
     :type operations: list[str]
     """
-    kpis: list[str]  # lis of all kpis
-    machines: list[str]  # list of all machines
-    operations: list[str]  # list of all operations
+
+    kpis: list[str]
+    machines: list[str]
+    operations: list[str]
     special: bool
 
     def to_json(self):
-        """Converts the KPIStreamingRequest object to a JSON string.
+        """
+        Converts the KPIStreamingRequest object to a JSON string.
 
         :return: A JSON string representation of the KPIStreamingRequest.
         :rtype: str

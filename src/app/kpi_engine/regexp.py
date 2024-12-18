@@ -1,8 +1,9 @@
-# this clean the formulas that we get from the KB
+""" This module contains functions to clean and transform formulas for real-time evaluation. """
+
 import re
 from typing import Any
-from app.models import exceptions
-from app.services.knowledge_base import get_closest_kpi_formula, get_kpi_formula
+from src.app.models import exceptions
+from src.app.services.knowledge_base import get_closest_kpi_formula, get_kpi_formula
 
 
 def clean_placeholders(formulas: dict[str, str]) -> (dict[str, str], dict[int, str]):
@@ -284,10 +285,9 @@ def transform_formula(
         - 'operations_f': The operations found in the formula.
     :rtype: dict[str, str]
     """
-    result = {}
+    result = {"operations_f": operation_IWO}
 
     # save in the result the operations idle working offline, if present
-    result["operations_f"] = operation_IWO
     # we catch if the formula has a particular structure with no
     if not operation_IWO:
         result["particular"] = 0
@@ -314,8 +314,9 @@ def replace_operations_in_formula(formula: str, mapping: dict[int, str]) -> str:
     Replaces placeholders in the formula based on a mapping of positions to operation types.
 
     :param formula: The formula string to modify.
+    :type formula: str
     :param mapping: A dictionary mapping placeholder positions to operation types.
-    :param agg: The aggregation function to apply (e.g., 'sum').
+    :type mapping: dict[int, str]
     :return: The modified formula with placeholders replaced.
     """
 

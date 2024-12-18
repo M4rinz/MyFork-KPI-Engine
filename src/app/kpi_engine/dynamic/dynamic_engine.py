@@ -1,3 +1,5 @@
+""" This module contains the dynamic KPI engine, which processes KPI formulas and performs calculations based on the"""
+
 from typing import Any
 
 import re
@@ -6,12 +8,12 @@ import numpy as np
 from nanoid import generate
 import requests
 
-import app.models.grammar as grammar
-import app.models.exceptions as exceptions
-from app.models.requests.rag import KPIRequest
-from app.models.responses.rag import KPIResponse
-from app.services.database import insert_aggregated_kpi
-from app.services.knowledge_base import (
+import src.app.models.grammar as grammar
+import src.app.models.exceptions as exceptions
+from src.app.models.requests.rag import KPIRequest
+from src.app.models.responses.rag import KPIResponse
+from src.app.services.database import insert_aggregated_kpi
+from src.app.services.knowledge_base import (
     get_kpi_formula,
     get_closest_instances,
     get_closest_kpi_formula,
@@ -25,17 +27,23 @@ def dynamic_kpi(
     request: KPIRequest,
     **kwargs,
 ):
+    """
+    Processes a KPI formula string by evaluating and performing operations (D°, A°, S°, R°, C°) and resolving nested
+    expressions. The function replaces parts of the string and recursively calls itself to process nested KPIs,
+    returning the final computed result.
 
-    """Processes a KPI formula string by evaluating and performing operations (D°, A°, S°, R°, C°) and resolving nested expressions. The function replaces parts of the string and recursively calls itself to process nested KPIs, returning the final computed result.
-
-    :param kpi: The KPI formula string to be processed. It may contain nested expressions enclosed in square brackets and operations (D°, A°, S°, R°, C°).
+    :param kpi: The KPI formula string to be processed. It may contain nested expressions enclosed in square brackets
+        and operations (D°, A°, S°, R°, C°).
     :type kpi: str
-    :param formulas_dict: A dictionary containing predefined formulas or other necessary information for the KPI calculation.
+    :param formulas_dict: A dictionary containing predefined formulas or other necessary information for the KPI
+        calculation.
     :type formulas_dict: dict
-    :param partial_result: A partial result that is passed to calculation functions. It may contain intermediate data accumulated during processing.
+    :param partial_result: A partial result that is passed to calculation functions. It may contain intermediate data
+        accumulated during processing.
     :type partial_result: any
-    :param request: A request object that may contain additional parameters required for processing, for example in the context of an API or web service.
-    :type request: any
+    :param request: A KPIRequest object that may contain additional parameters required for processing, for example in the
+        context of an API or web service.
+    :type request: :class:`KPIRequest`
     :param kwargs: Additional arguments that can be passed to the function as needed.
     :type kwargs: dict, optional
 
@@ -104,10 +112,10 @@ def dynamic_kpi(
 
 def query_DB(kpi: str, request: KPIRequest, **kwargs) -> tuple[np.ndarray, np.ndarray]:
     """
-    Queries the database for real-time data corresponding to a specific KPI, processes the data, 
+    Queries the database for real-time data corresponding to a specific KPI, processes the data,
     and returns it in a split format based on the requested step.
 
-    The function splits the data into steps for time aggregation, reshapes it into a 3D numpy array, 
+    The function splits the data into steps for time aggregation, reshapes it into a 3D numpy array,
     and handles any remainder data by returning it separately.
 
     :param kpi: The KPI identifier, containing the name of the KPI and the database column reference.
@@ -115,7 +123,7 @@ def query_DB(kpi: str, request: KPIRequest, **kwargs) -> tuple[np.ndarray, np.nd
     :param request: The KPIRequest object containing the machines, operations, and time range for the query.
     :type request: KPIRequest
     :param kwargs: Additional keyword arguments (not used in this function but can be included for extensibility).
-    :return: A tuple containing two numpy arrays: 
+    :return: A tuple containing two numpy arrays:
              - `step_split`: A 3D numpy array representing the data split by the given step.
              - `bottom`: A numpy array containing the remainder of the data that doesn't fit into the step split.
     :rtype: tuple[np.ndarray, np.ndarray]
@@ -159,7 +167,6 @@ def query_DB(kpi: str, request: KPIRequest, **kwargs) -> tuple[np.ndarray, np.nd
         },
         timeout=10,
     )
-    # json={"statement": insert_query, "data": data},
 
     data = response.json()["data"]
 
@@ -206,9 +213,11 @@ def query_DB(kpi: str, request: KPIRequest, **kwargs) -> tuple[np.ndarray, np.nd
 
 
 def A(kpi: str, partial_result: dict[str, Any], **kwargs) -> str:
-    """Performs an aggregation operation on a KPI, applying it to the data. The available aggregation are: mean, sum, max, min, var, std.
-    # keys_inv is the key of the dictionary with the partial result associated with the kpi
-    :param kpi: The key performance indicator (KPI) formula to process, typically in the form of a string.
+    """
+    Performs an aggregation operation on a KPI, applying it to the data. The available aggregation are: mean, sum, max,
+    min, var, std.
+
+    :param kpi: The substring of the original formula matching the A° case of the grammar
     :type kpi: str
     :param partial_result: A dictionary containing intermediate results for KPIs, used for aggregation.
     :type partial_result: dict[str, Any]
@@ -258,11 +267,13 @@ def A(kpi: str, partial_result: dict[str, Any], **kwargs) -> str:
 
 # pairwise operation involving two elements
 def S(kpi: str, partial_result: dict[str, Any], **kwargs):
-    """Performs a binary operation between two KPIs, updating the partial result dictionary with the computed value.
+    """
+    Performs a binary operation between two KPIs, updating the partial result dictionary with the computed value.
 
-    :param kpi: The KPI formula representing the binary operation, typically in the form of a string.
+    :param kpi: The substring of the original formula matching the S° case of the grammar
     :type kpi: str
-    :param partial_result: A dictionary containing intermediate results for KPIs. It is updated with the result of the binary operation.
+    :param partial_result: A dictionary containing intermediate results for KPIs. It is updated with the result of the
+        binary operation.
     :type partial_result: dict[str, Any]
     :param kwargs: Additional optional parameters for extended functionality.
     :type kwargs: dict, optional
@@ -290,15 +301,19 @@ def R(
     request: KPIRequest,
     **kwargs,
 ):
-    """Resolves a reference to another KPI by looking up the corresponding formula in the formulas dictionary and calculating it using the dynamic_kpi function.
+    """
+    Resolves a reference to another KPI by looking up the corresponding formula in the formulas dictionary and
+        calculating it using the dynamic_kpi function.
 
-    :param kpi: The KPI formula that includes a reference to another KPI, in the form of a string (e.g., 'R°some_formula').
+    :param kpi: The substring of the original formula matching the R° case of the grammar
     :type kpi: str
-    :param partial_result: A dictionary containing intermediate results for KPIs. It is updated with the result of the referenced KPI.
+    :param partial_result: A dictionary containing intermediate results for KPIs. It is updated with the result of the
+        referenced KPI.
     :type partial_result: dict[str, Any]
-    :param formulas_dict: A dictionary mapping KPI names to their corresponding formulas. Used to look up the formula for the referenced KPI.
+    :param formulas_dict: A dictionary mapping KPI names to their corresponding formulas. Used to look up the formula
+        for the referenced KPI.
     :type formulas_dict: dict[str, str]
-    :param request: An object containing request data such as time intervals, machines, and operations needed for KPI calculation.
+    :param request: The associated KPIRequest, that provides a useful context in the resolution of this part.
     :type request: KPIRequest
     :param kwargs: Additional optional parameters for extended functionality.
     :type kwargs: dict, optional
@@ -306,8 +321,6 @@ def R(
     :return: The result of calculating the referenced KPI formula, as a string.
     :rtype: str
     """
-
-    kpi_split = kpi.split("°")
 
     kpi_split = kpi.split("°")
     kpi_involved = kpi_split[1]
@@ -339,13 +352,15 @@ def D(
     request: KPIRequest,
     **kwargs,
 ):
-    """Executes a database query to retrieve data for a KPI and stores the results in the partial_result dictionary.
+    """
+    Executes a database query to retrieve data for a KPI and stores the results in the partial_result dictionary.
 
-    :param kpi: The KPI formula that includes a database reference, used to query the database for the required data.
+    :param kpi: The substring of the original formula matching the D° case of the grammar
     :type kpi: str
-    :param partial_result: A dictionary containing intermediate results for KPIs. It is updated with the results from the database query.
+    :param partial_result: A dictionary containing intermediate results for KPIs. It is updated with the results from
+        the database query.
     :type partial_result: dict[str, Any]
-    :param request: An object containing request data such as time intervals, machines, and operations needed for the database query.
+    :param request: The associated KPIRequest.
     :type request: KPIRequest
     :param kwargs: Additional optional parameters for extended functionality.
     :type kwargs: dict, optional
@@ -371,11 +386,14 @@ def D(
 
 
 def C(kpi: str, partial_result: dict[str, Any], **kwargs):
-    """Handles constant KPIs by storing a fixed value in the partial_result dictionary.
+    """
+    Handles constant KPIs by storing a fixed value in the partial_result dictionary.
 
-    :param kpi: The KPI formula representing a constant, where the constant value is provided after the '°' symbol (e.g., 'C°100').
+    :param kpi: The KPI formula representing a constant, where the constant value is provided after the '°'
+        symbol (e.g., 'C°100').
     :type kpi: str
-    :param partial_result: A dictionary containing intermediate results for KPIs. It is updated with the constant value extracted from the 'kpi' parameter.
+    :param partial_result: A dictionary containing intermediate results for KPIs. It is updated with the constant value
+        extracted from the 'kpi' parameter.
     :type partial_result: dict[str, Any]
     :param kwargs: Additional optional parameters for extended functionality.
     :type kwargs: dict, optional
@@ -389,7 +407,8 @@ def C(kpi: str, partial_result: dict[str, Any], **kwargs):
 
 
 def compute(request: KPIRequest, chart: bool) -> KPIResponse:
-    """Computes the value of a KPI based on the given request, including the validation of machines and operations,
+    """
+    Computes the value of a KPI based on the given request, including the validation of machines and operations,
     fetching the corresponding formula from the knowledge base, and performing the necessary calculations and
     aggregation.
 
@@ -428,7 +447,6 @@ def compute(request: KPIRequest, chart: bool) -> KPIResponse:
     aggregation = request.time_aggregation
 
     # inits the kpi calculation by finding the outermost aggregation and involved aggregation variables
-
     partial_result = preprocessing(name, formulas)
 
     try:
@@ -459,7 +477,8 @@ def compute(request: KPIRequest, chart: bool) -> KPIResponse:
 
 
 def preprocessing(kpi_name: str, formulas_dict: dict[str, Any]) -> dict[str, Any]:
-    """Preprocesses the KPI formula to extract aggregation variables and operations.
+    """
+    Preprocesses the KPI formula to extract aggregation variables and operations.
 
     :param kpi_name: The name of the KPI.
     :type kpi_name: str
@@ -488,11 +507,14 @@ def preprocessing(kpi_name: str, formulas_dict: dict[str, Any]) -> dict[str, Any
 def finalize_mo(
     final_formula: str, partial_result: dict[str, Any], time_aggregation: str
 ):
-    """Finalizes the KPI calculation by applying the specified aggregation and time-based aggregation to the partial result.
+    """
+    Finalizes the KPI calculation by applying the specified aggregation and time-based aggregation to the partial result.
 
-    :param final_formula: The final formula representing the KPI, formatted as '°key', where 'key' corresponds to the key in the partial_result dictionary.
+    :param final_formula: The final formula representing the KPI, formatted as '°key', where 'key' corresponds to the
+        key in the partial_result dictionary.
     :type final_formula: str
-    :param partial_result: A dictionary containing partial results of KPIs. The key specified in 'final_formula' is used to access the corresponding data for aggregation.
+    :param partial_result: A dictionary containing partial results of KPIs. The key specified in 'final_formula' is used
+        to access the corresponding data for aggregation.
     :type partial_result: dict[str, Any]
     :param time_aggregation: The time-based aggregation function to apply to the result (e.g., 'mean', 'sum').
     :type time_aggregation: str
@@ -510,11 +532,13 @@ def finalize_mo(
 
 
 def keys_involved(kpi: str, partial_result: dict[str, Any]):
-    """Extracts the keys involved in a KPI formula from the partial_result dictionary.
+    """
+    Extracts the keys involved in a KPI formula from the partial_result dictionary.
 
-    :param kpi: The KPI formula represented as a string, which is split by the '°' symbol to extract the variables involved.
+    :param kpi: The KPI formula represented as a string, which is split by the '°' symbol to extract the involved variables.
     :type kpi: str
-    :param partial_result: A dictionary containing partial results for KPIs. The function checks which keys in the formula are present in this dictionary.
+    :param partial_result: A dictionary containing partial results for KPIs. The function checks which keys in the
+        formula are present in this dictionary.
     :type partial_result: dict[str, Any]
     :return: A list of keys that are present in both the KPI formula and the partial_result dictionary.
     :rtype: list[str]
@@ -530,8 +554,8 @@ def check_machine_operation(machines, operations):
     """
     Validates and adjusts the relationship between machines and operations.
 
-    Ensures that the number of machines matches the number of operations. 
-    If a single machine string is provided, it resolves to the closest instances and adjusts the operations list if necessary. 
+    Ensures that the number of machines matches the number of operations.
+    If a single machine string is provided, it resolves to the closest instances and adjusts the operations list if necessary.
     Handles mismatches by attempting reconciliation or returning an error response.
 
     :param machines: A string representing a single machine or a list of machine names.
@@ -574,35 +598,3 @@ def check_machine_operation(machines, operations):
         return machines, operations
 
     return machines, operations
-
-
-# build query statement
-'''
-def build_query(request: KPIRequest, after_last_underscore, before_last_underscore):
-    if request.machines and request.operations:
-        conditions = " OR ".join(
-            f"(name = '{m}' AND operation = '{o}')"
-            for m, o in zip(request.machines, request.operations)
-        )
-    elif request.machines:
-        conditions = " OR ".join(f"(name = '{m}')" for m in request.machines)
-    elif request.operations:
-        conditions = " OR ".join(f"(operation = '{o}')" for o in request.operations)
-    else:
-        conditions = ""
-
-    raw_query_statement = f"""
-    SELECT asset_id, operation, time, {after_last_underscore} 
-    FROM real_time_data 
-    WHERE kpi = '{before_last_underscore}'
-    """
-
-    if conditions:
-        raw_query_statement += f"AND ({conditions}) "
-
-    raw_query_statement += (
-        f"AND time BETWEEN '{request.start_date}' AND '{request.end_date}'"
-    )
-
-    return raw_query_statement
-'''

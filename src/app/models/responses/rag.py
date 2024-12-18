@@ -1,30 +1,18 @@
-from pydantic import BaseModel, validator
+from pydantic import BaseModel
 from typing import Union
 
 
 class KPIResponse(BaseModel):
-    """Represents the response of a KPI computation, including a message and a value.
+    """
+    Represents the response of a KPI computation, including a message and a value.
+    This response is sent to the RAG after the kpi computation is completed, as well as the GUI in case of a chart
+    request.
 
     :param message: A descriptive message about the KPI computation result.
     :type message: str
-    :param value: The computed value of the KPI.
-    :type value: float
+    :param value: The computed value of the KPI if time-aggregated, or a list of values.
+    :type value: union[float, list[float]]
     """
 
     message: str
     value: Union[float, list[float]]
-
-    @validator("message")
-    def validate_message(cls, value):
-        """Validates the message parameter to ensure it is a string.
-
-        :param value: The message describing the KPI computation result.
-        :type value: str
-        :raises ValueError: If the message is not a string.
-        :return: The validated message.
-        :rtype: str
-        """
-
-        if not isinstance(value, str):
-            raise ValueError("Message must be a string.")
-        return value

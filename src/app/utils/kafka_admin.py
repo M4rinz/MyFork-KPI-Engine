@@ -5,7 +5,7 @@ async def delete_kafka_topic(topic_name, bootstrap_servers):
     """Deletes a Kafka topic asynchronously.
 
     This function connects to a Kafka cluster using the provided bootstrap servers,
-    and deletes the specified topic. It uses the `AIOKafkaAdminClient` for asynchronous 
+    and deletes the specified topic. It uses the `AIOKafkaAdminClient` for asynchronous
     operations.
 
     :param topic_name: The name of the Kafka topic to delete.
