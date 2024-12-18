@@ -1,4 +1,4 @@
-"""This file contains the allowed syntax for the grammar."""
+""" This file contains the allowed syntax for the grammar.  """
 
 aggregations = ["sum", "mean", "min", "max", "var", "std"]
 operators = ["+", "-", "*", "/", "**"]

@@ -1,4 +1,4 @@
-# src/app/endpoints/real_time.py
+""" Real-time KPI computation endpoint."""
 
 import asyncio
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect
@@ -26,6 +26,19 @@ KAFKA_PORT = os.getenv("KAFKA_PORT")
 
 @router.websocket("/")
 async def real_time_session(websocket: WebSocket) -> RealTimeResponse:
+    """
+    Manages a real-time KPI WebSocket session.
+
+    This function handles incoming WebSocket connections, allowing the client to start or stop
+    a real-time KPI session. It validates incoming messages and processes requests to either
+    initialize a session or terminate it. Invalid messages will result in the WebSocket connection
+    being closed. The session is managed by the `handle_real_time_session` function.
+
+    :param websocket: The WebSocket connection for client-server communication.
+    :type websocket: WebSocket
+    :return: A response indicating the result of the WebSocket operation (informative).
+    :rtype: RealTimeResponse
+    """
     await websocket.accept()
     try:
         while True:
@@ -54,6 +67,21 @@ async def real_time_session(websocket: WebSocket) -> RealTimeResponse:
 async def handle_real_time_session(
     websocket: WebSocket, request: RealTimeKPIRequest
 ) -> RealTimeResponse:
+    """
+    Initiates and manages a real-time KPI session.
+
+    This function validates the incoming request, prepares the necessary configurations for
+    KPI computation, and starts the AIOKafkaConsumer to process real-time data. The consumer is started asynchronously
+    in a separate task, allowing the WebSocket connection to remain open for real-time communication and the other
+    endpoints to be called concurrently. The session can be stopped by sending a "stop" message through the WebSocket.
+
+    :param websocket: The WebSocket connection used for real-time communication.
+    :type websocket: WebSocket
+    :param request: Details of the KPI request including KPI name, machines, operations, and other parameters.
+    :type request: RealTimeKPIRequest
+    :return: A response indicating the success or failure of the session initiation.
+    :rtype: RealTimeResponse
+    """
     global consumer_task, stop_event, kpi_engine
 
     if consumer_task and not consumer_task.done():
@@ -102,7 +130,17 @@ async def handle_real_time_session(
 
 
 async def stop_consumer() -> RealTimeResponse:
-    """Stop the Kafka consumer."""
+    """
+    Stops the currently running Kafka consumer.
+
+    This endpoint stops the real-time KPI session by signaling the Kafka consumer (in the :class:`KPIEngine
+    <src.app.kpi_engine.kpi_engine.KPIEngine>` to terminate, processing any remaining data, and closing all active
+    connections.
+
+    :return: A response indicating the success or failure of stopping the consumer.
+    :rtype: RealTimeResponse
+    """
+
     global stop_event, consumer_task
 
     if consumer_task is None or kpi_engine is None:
@@ -125,7 +163,14 @@ async def stop_consumer() -> RealTimeResponse:
 
 
 async def shutdown_event():
-    """Shutdown event to stop the consumer."""
+    """
+    Handles application shutdown by stopping the Kafka consumer and cleaning up resources.
+
+    This function is triggered during application shutdown. It stops the Kafka consumer
+    and deletes the Kafka topic associated with the real-time session.
+
+    :raises Exception: If errors occur during the cleanup process.
+    """
     global stop_event
     stop_event.set()  # Signal the task to stop
     if consumer_task and not consumer_task.done():
