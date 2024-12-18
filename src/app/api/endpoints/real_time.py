@@ -1,7 +1,7 @@
 # src/app/endpoints/real_time.py
 
 import asyncio
-from fastapi import APIRouter, WebSocket
+from fastapi import APIRouter, WebSocket, WebSocketDisconnect
 from threading import Event
 import os
 
@@ -39,25 +39,28 @@ async def real_time_session(websocket: WebSocket) -> RealTimeResponse:
     :rtype: RealTimeResponse
     """
     await websocket.accept()
+    try:
+        while True:
 
-    while True:
-
-        data = await websocket.receive_json()
-        if data == {"message": "stop"}:
-            await stop_consumer()
-            await websocket.close()
-            break
-        elif data["message"] == "start":
-            print("Starting real-time session, data:", data)
-            request = RealTimeKPIRequest(**data["request"])
-            _ = await handle_real_time_session(websocket, request)
-        else:
-            response = RealTimeResponse(
-                message="Invalid message received in the websocket", status=400
-            )
-            await websocket.send_json(response.dict())
-            await websocket.close()
-            break
+            data = await websocket.receive_json()
+            if data == {"message": "stop"}:
+                await stop_consumer()
+                await websocket.close()
+                break
+            elif data["message"] == "start":
+                print("Starting real-time session, data:", data)
+                request = RealTimeKPIRequest(**data["request"])
+                _ = await handle_real_time_session(websocket, request)
+            else:
+                response = RealTimeResponse(
+                    message="Invalid message received in the websocket", status=400
+                )
+                await websocket.send_json(response.dict())
+                await websocket.close()
+                break
+    except WebSocketDisconnect:
+        await stop_consumer()
+        await websocket.close()
 
 
 async def handle_real_time_session(
